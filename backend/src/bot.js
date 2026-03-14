@@ -17,6 +17,70 @@
 const { Telegraf, Markup } = require("telegraf");
 const { runPipeline }      = require("./pipeline");
 
+// ── OpenRouter LLM setup ──────────────────────────────────────────────────────
+const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
+const OPENROUTER_MODEL   = process.env.OPENROUTER_MODEL || "google/gemini-2.0-flash-lite-001";
+
+const SYSTEM_PROMPT = `You are D3PLOY Bot — an AI assistant for the D3PLOY platform, a censorship-resistant Web3 deployment tool.
+D3PLOY builds projects, uploads them to IPFS, resolves through ENS, and logs deploys on-chain.
+
+You help users with:
+- Deploying their GitHub repos to IPFS (tell them to use /deploy)
+- Understanding how IPFS, ENS, and on-chain logging work
+- Troubleshooting build errors and deploy failures
+- Explaining Web3, decentralized hosting, and the D3PLOY architecture
+
+Keep responses concise, friendly, and helpful. Use emoji sparingly.
+If the user wants to deploy, guide them to use the /deploy command.
+You are powered by D3PLOY + OpenClaw x402.`;
+
+// Per-chat conversation history (last 10 turns)
+const chatHistories = new Map();
+
+async function askAI(chatId, userMessage) {
+  if (!OPENROUTER_API_KEY) return null;
+  try {
+    if (!chatHistories.has(chatId)) chatHistories.set(chatId, []);
+    const history = chatHistories.get(chatId);
+
+    const messages = [
+      { role: "system", content: SYSTEM_PROMPT },
+      ...history,
+      { role: "user", content: userMessage },
+    ];
+
+    const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
+        "Content-Type":  "application/json",
+        "HTTP-Referer":  "https://d3ploy.xyz",
+        "X-Title":       "D3PLOY Bot",
+      },
+      body: JSON.stringify({ model: OPENROUTER_MODEL, messages }),
+    });
+
+    if (!res.ok) {
+      const err = await res.text();
+      throw new Error(`OpenRouter ${res.status}: ${err}`);
+    }
+
+    const data  = await res.json();
+    const reply = data.choices?.[0]?.message?.content?.trim();
+    if (!reply) throw new Error("Empty response from OpenRouter");
+
+    // Update history (keep last 10 turns = 20 messages)
+    history.push({ role: "user", content: userMessage });
+    history.push({ role: "assistant", content: reply });
+    if (history.length > 20) history.splice(0, 2);
+
+    return reply;
+  } catch (err) {
+    console.error("[bot] OpenRouter error:", err.message);
+    return null;
+  }
+}
+
 if (!process.env.TELEGRAM_BOT_TOKEN) {
   console.log("[bot] TELEGRAM_BOT_TOKEN not set — Telegram bot disabled.");
   module.exports = { launch: () => {}, stop: () => {} };
@@ -294,10 +358,17 @@ bot.on("text", async (ctx) => {
     return;
   }
 
-  // ── Idle — nudge user ──────────────────────────────────────
+  // ── Idle — AI conversation ─────────────────────────────────
 
   if (s.step === STEPS.IDLE) {
-    ctx.reply("👋 Use /deploy to start a new deploy, or /help for all commands.");
+    const aiReply = await askAI(chatId, text);
+    if (aiReply) {
+      await ctx.reply(aiReply, { parse_mode: "Markdown" }).catch(() =>
+        ctx.reply(aiReply) // retry without markdown if formatting fails
+      );
+    } else {
+      ctx.reply("👋 Use /deploy to start a new deploy, or /help for all commands.");
+    }
   }
 });
 
