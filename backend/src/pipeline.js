@@ -95,7 +95,7 @@ async function runPipeline({ repoUrl, domain, env = "production", meta = "", ens
   try {
     // ── 2. First build (no assetPrefix) ───────────────
     log("\n🔨 Build pass 1 (get base CID)...");
-    const { outDir } = await buildRepo(buildDir, "", log);
+    const { outDir, framework } = await buildRepo(buildDir, "", log);
 
     // ── 3. First IPFS upload ───────────────────────────
     log("\n📤 IPFS upload pass 1...");
@@ -105,8 +105,7 @@ async function runPipeline({ repoUrl, domain, env = "production", meta = "", ens
     let finalCid = baseCid;
 
     // ── 4. Second pass for Next.js (inject assetPrefix) ─
-    const fw = require("./builder").detectFramework(buildDir);
-    if (fw === "nextjs") {
+    if (framework === "nextjs") {
       log("\n🔨 Build pass 2 (inject assetPrefix)...");
       const { outDir: outDir2 } = await buildRepo(buildDir, baseCid, log);
 
@@ -160,7 +159,7 @@ async function runPipeline({ repoUrl, domain, env = "production", meta = "", ens
       cid: finalCid,
       domain: resolvedDomain,
       env,
-      framework: fw,
+      framework,
       elapsed: `${elapsed}s`,
       timestamp: new Date().toISOString(),
       gateways: {

@@ -3,10 +3,19 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { getToken, clearToken, deployStream, getConnectedRepos, ConnectedRepo, DeployReceipt, getRepos, Repo } from "@/lib/api";
+import { getToken, clearToken, deployStream, getConnectedRepos, ConnectedRepo, DeployReceipt, getRepos, Repo, getBranches, connectRepo } from "@/lib/api";
 import Navbar from "@/components/navbar";
 
 type DeployState = "idle" | "deploying" | "done" | "error";
+const FOLDER_BY_REPO_KEY = "d3ploy_folder_by_repo";
+
+function detectFrameworkHint(folderPath: string, repoUrl: string) {
+  const hintSource = `${folderPath} ${repoUrl}`.toLowerCase();
+  if (hintSource.includes("next")) return "Next.js (pre-check)";
+  if (hintSource.includes("vite")) return "Vite (pre-check)";
+  if (hintSource.includes("react-scripts") || hintSource.includes("cra")) return "Create React App (pre-check)";
+  return "Auto-detect from package.json at build time";
+}
 
 export default function DeployPage() {
   const router = useRouter();
@@ -16,6 +25,11 @@ export default function DeployPage() {
   const [repos, setRepos] = useState<Repo[]>([]);
   const [loadingRepos, setLoadingRepos] = useState(true);
   const [reposError, setReposError] = useState<string | null>(null);
+  const [branches, setBranches] = useState<string[]>([]);
+  const [loadingBranches, setLoadingBranches] = useState(false);
+  const [branch, setBranch] = useState("main");
+  const [folderPath, setFolderPath] = useState("");
+  const [autoConnect, setAutoConnect] = useState(true);
   const [domain, setDomain] = useState("");
   const [domainMode, setDomainMode] = useState<"auto" | "custom">("auto");
   const [ipnsKey, setIpnsKey] = useState("");
@@ -74,12 +88,107 @@ export default function DeployPage() {
     }
   }, [logs]);
 
-  function handleDeploy(e: React.FormEvent) {
+  function buildRepoTreeUrl(repoFullName: string, selectedBranch: string, folder: string) {
+    const cleanBranch = (selectedBranch || "").trim();
+    const cleanFolder = folder.trim().replace(/^\/+|\/+$/g, "");
+
+    if (!cleanBranch) return `https://github.com/${repoFullName}`;
+    if (!cleanFolder) return `https://github.com/${repoFullName}/tree/${cleanBranch}`;
+    return `https://github.com/${repoFullName}/tree/${cleanBranch}/${cleanFolder}`;
+  }
+
+  useEffect(() => {
+    if (!selectedRepo) {
+      setBranches([]);
+      setBranch("main");
+      setFolderPath("");
+      return;
+    }
+
+    const picked = repos.find((r) => r.fullName === selectedRepo);
+    const fallbackBranch = picked?.defaultBranch || "main";
+    setBranch(fallbackBranch);
+
+    async function loadBranches() {
+      try {
+        setLoadingBranches(true);
+        const [owner, repoName] = selectedRepo.split("/");
+        const res = await getBranches(owner, repoName);
+        setBranches(res.branches);
+        if (res.branches.length > 0 && !res.branches.includes(fallbackBranch)) {
+          setBranch(res.branches[0]);
+        }
+      } catch {
+        setBranches([fallbackBranch]);
+      } finally {
+        setLoadingBranches(false);
+      }
+    }
+
+    loadBranches();
+  }, [selectedRepo, repos]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!selectedRepo) return;
+
+    try {
+      const raw = localStorage.getItem(FOLDER_BY_REPO_KEY);
+      const mapping = raw ? (JSON.parse(raw) as Record<string, string>) : {};
+      setFolderPath(mapping[selectedRepo] || "");
+    } catch {
+      setFolderPath("");
+    }
+  }, [selectedRepo]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!selectedRepo) return;
+
+    try {
+      const raw = localStorage.getItem(FOLDER_BY_REPO_KEY);
+      const mapping = raw ? (JSON.parse(raw) as Record<string, string>) : {};
+      mapping[selectedRepo] = folderPath;
+      localStorage.setItem(FOLDER_BY_REPO_KEY, JSON.stringify(mapping));
+    } catch {
+      // no-op when storage is unavailable
+    }
+  }, [selectedRepo, folderPath]);
+
+  useEffect(() => {
+    if (!selectedRepo) return;
+    setRepoUrl(buildRepoTreeUrl(selectedRepo, branch, folderPath));
+  }, [selectedRepo, branch, folderPath]);
+
+  async function handleDeploy(e: React.FormEvent) {
     e.preventDefault();
     if (!repoUrl.trim() || !domain.trim()) return;
     if (domainMode === "custom" && !ipnsKey.trim()) {
       setErrMsg("ipnsKey is required for custom domains. Complete custom domain setup first.");
       return;
+    }
+
+    if (selectedRepo && autoConnect) {
+      const alreadyConnected = connectedRepos.some(
+        (r) => r.repoFullName === selectedRepo && r.branch === branch
+      );
+
+      try {
+        if (!alreadyConnected) {
+          await connectRepo({
+            repoFullName: selectedRepo,
+            branch,
+            domain,
+            domainMode,
+            customEnsName: domainMode === "custom" ? domain : undefined,
+            env,
+          });
+        }
+      } catch (err: unknown) {
+        setErrMsg(`Could not auto-connect repo for webhook deploys: ${(err as Error).message}`);
+        setStatus("error");
+        return;
+      }
     }
 
     setStatus("deploying");
@@ -198,8 +307,14 @@ export default function DeployPage() {
                   onChange={(e) => {
                     const next = e.target.value;
                     setSelectedRepo(next);
+                    setSelectedConnection("");
+                    setFolderPath("");
                     const picked = repos.find((r) => r.fullName === next);
-                    if (picked?.htmlUrl) setRepoUrl(picked.htmlUrl);
+                    const defaultBranch = picked?.defaultBranch || "main";
+                    setBranch(defaultBranch);
+                    if (next) {
+                      setRepoUrl(buildRepoTreeUrl(next, defaultBranch, ""));
+                    }
                   }}
                   disabled={isDeploying || loadingRepos || repos.length === 0}
                   className="w-full bg-tg-black border border-white/10 rounded-2xl px-4 py-3 text-sm text-white focus:outline-none focus:border-tg-lavender transition-colors disabled:opacity-50"
@@ -217,6 +332,71 @@ export default function DeployPage() {
                   </p>
                 )}
               </div>
+
+              {selectedRepo && (
+                <>
+                  <div className="px-4 py-3 rounded-2xl bg-tg-black border border-white/10 text-xs text-tg-muted space-y-1">
+                    <p>
+                      Target: <span className="font-mono text-white">{selectedRepo}</span>
+                      <span className="text-white/30"> @ </span>
+                      <span className="font-mono text-white">{branch || "main"}</span>
+                      {folderPath.trim() && (
+                        <>
+                          <span className="text-white/30"> / </span>
+                          <span className="font-mono text-white">{folderPath.trim()}</span>
+                        </>
+                      )}
+                    </p>
+                    <p>
+                      Framework: <span className="text-white">{detectFrameworkHint(folderPath, repoUrl)}</span>
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold tracking-widest uppercase text-tg-muted">
+                      Branch
+                    </label>
+                    <select
+                      value={branch}
+                      onChange={(e) => setBranch(e.target.value)}
+                      disabled={isDeploying || loadingBranches}
+                      className="w-full bg-tg-black border border-white/10 rounded-2xl px-4 py-3 text-sm text-white focus:outline-none focus:border-tg-lavender transition-colors disabled:opacity-50"
+                    >
+                      {(branches.length ? branches : [branch]).map((b) => (
+                        <option key={b} value={b}>{b}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold tracking-widest uppercase text-tg-muted">
+                      Folder Path <span className="text-white/30">(optional)</span>
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="frontend or apps/web"
+                      value={folderPath}
+                      onChange={(e) => setFolderPath(e.target.value)}
+                      disabled={isDeploying}
+                      className="w-full bg-tg-black border border-white/10 rounded-2xl px-4 py-3 text-sm text-white placeholder-tg-muted focus:outline-none focus:border-tg-lavender transition-colors disabled:opacity-50 font-mono"
+                    />
+                    <p className="text-xs text-tg-muted">Deploy a specific subfolder for monorepos. Leave empty to deploy repo root.</p>
+                  </div>
+
+                  <label className="flex items-center space-x-3 px-4 py-3 rounded-2xl bg-tg-black border border-white/10">
+                    <input
+                      type="checkbox"
+                      checked={autoConnect}
+                      onChange={(e) => setAutoConnect(e.target.checked)}
+                      disabled={isDeploying}
+                      className="accent-tg-lime"
+                    />
+                    <span className="text-xs text-tg-muted">
+                      Auto-connect this repo for future push-based deployments in this same step.
+                    </span>
+                  </label>
+                </>
+              )}
 
               <div className="space-y-2">
                 <label className="text-xs font-bold tracking-widest uppercase text-tg-muted">
