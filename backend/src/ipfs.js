@@ -1,13 +1,18 @@
 /**
  * src/ipfs.js
- * Pinata upload helpers — directory upload + DHT warmup
+ * IPFS upload helpers — Pinata v3 → Pinata v2 → Lighthouse fallback chain
  */
 
 const axios    = require("axios");
 const FormData = require("form-data");
 const fs       = require("fs");
 const path     = require("path");
-const { PINATA_JWT, PINATA_API_KEY, PINATA_API_SECRET } = process.env;
+const { PINATA_JWT, PINATA_API_KEY, PINATA_API_SECRET, LIGHTHOUSE_API_KEY } = process.env;
+
+function pinataPlanLimitError(err) {
+  const msg = err.response?.data?.error?.message || "";
+  return err.response?.status === 403 && msg.toLowerCase().includes("plan limits");
+}
 
 function authHeaders() {
   if (PINATA_JWT) return { Authorization: `Bearer ${PINATA_JWT}` };
@@ -36,26 +41,22 @@ async function testAuth() {
 }
 
 /**
- * Upload a local directory to Pinata IPFS.
- * Tries the v3 Files API first, falls back to legacy v2 pinning API.
+ * Upload a local directory to IPFS.
+ * Provider chain: Pinata v3 → Pinata v2 → Lighthouse
  * Returns the CIDv1 string.
  */
 async function uploadDir(dirPath, name, log = console.log) {
   const files = collectFiles(dirPath);
   log(`  📁 Uploading ${files.length} files as "${name}"`);
 
-  // ── Pinata v3 Files API (current) ────────────────────
+  // ── 1. Pinata v3 Files API ─────────────────────────────
   if (PINATA_JWT) {
     try {
       const form = new FormData();
-      // v3 wants a single "file" entry — for directories we create a zip in memory
-      // but the easiest supported approach is uploading files individually under
-      // the same group. For a flat bundle Pinata v3 accepts multiple files.
       for (const { full, relative } of files) {
         form.append("file", fs.createReadStream(full), { filename: relative });
       }
       form.append("name", name);
-      form.append("group_id", ""); // optional group
 
       const res = await axios.post(
         "https://uploads.pinata.cloud/v3/files",
@@ -63,38 +64,86 @@ async function uploadDir(dirPath, name, log = console.log) {
         {
           maxBodyLength: Infinity,
           maxContentLength: Infinity,
-          headers: {
-            Authorization: `Bearer ${PINATA_JWT}`,
-            ...form.getHeaders(),
-          },
+          headers: { Authorization: `Bearer ${PINATA_JWT}`, ...form.getHeaders() },
         }
       );
       return res.data.data.cid;
     } catch (err) {
-      const status = err.response?.status;
-      log(`  ⚠️  Pinata v3 failed (${status ?? err.message}), falling back to v2...`);
+      if (pinataPlanLimitError(err)) {
+        log(`  ⚠️  Pinata plan limit reached — skipping v2, trying Lighthouse...`);
+      } else {
+        log(`  ⚠️  Pinata v3 failed (${err.response?.status ?? err.message}), falling back to v2...`);
+
+        // ── 2. Pinata v2 legacy API ──────────────────────────
+        try {
+          const form2 = new FormData();
+          for (const { full, relative } of files) {
+            form2.append("file", fs.createReadStream(full), { filepath: `tmp/${relative}` });
+          }
+          form2.append("pinataMetadata", JSON.stringify({ name }));
+          form2.append("pinataOptions", JSON.stringify({ cidVersion: 1, wrapWithDirectory: false }));
+
+          const res2 = await axios.post(
+            "https://api.pinata.cloud/pinning/pinFileToIPFS",
+            form2,
+            {
+              maxBodyLength: Infinity,
+              maxContentLength: Infinity,
+              headers: { ...authHeaders(), ...form2.getHeaders() },
+            }
+          );
+          return res2.data.IpfsHash;
+        } catch (err2) {
+          if (pinataPlanLimitError(err2)) {
+            log(`  ⚠️  Pinata plan limit reached — trying Lighthouse...`);
+          } else {
+            log(`  ⚠️  Pinata v2 failed (${err2.response?.status ?? err2.message}), trying Lighthouse...`);
+          }
+        }
+      }
     }
   }
 
-  // ── Pinata v2 legacy API (fallback) ──────────────────
-  const form = new FormData();
-  for (const { full, relative } of files) {
-    form.append("file", fs.createReadStream(full), { filepath: `tmp/${relative}` });
+  // ── 3. Lighthouse ──────────────────────────────────────
+  if (!LIGHTHOUSE_API_KEY) {
+    throw new Error(
+      "All IPFS providers failed. " +
+      "Your Pinata account has hit its free plan storage limit (1 GB). " +
+      "Either delete old pins at app.pinata.cloud, upgrade your Pinata plan, " +
+      "or set LIGHTHOUSE_API_KEY in .env (get a free key at https://lighthouse.storage)."
+    );
   }
-  form.append("pinataMetadata", JSON.stringify({ name }));
-  form.append("pinataOptions", JSON.stringify({ cidVersion: 1, wrapWithDirectory: false }));
 
-  const res = await axios.post(
-    "https://api.pinata.cloud/pinning/pinFileToIPFS",
+  log(`  📡 Falling back to Lighthouse IPFS...`);
+
+  // Lighthouse requires one file per request, so we upload all files and
+  // then use the root CID returned for the last (index.html) file.
+  // For a proper directory CID, we zip the whole directory.
+  const archiver = require("archiver");
+  const { Readable } = require("stream");
+
+  // Build a zip in memory and stream to Lighthouse
+  const zipStream = archiver("zip", { zlib: { level: 6 } });
+  zipStream.directory(dirPath, false);
+  zipStream.finalize();
+
+  const form = new FormData();
+  form.append("file", zipStream, { filename: "site.zip", contentType: "application/zip" });
+
+  const lhRes = await axios.post(
+    "https://node.lighthouse.storage/api/v0/add",
     form,
     {
       maxBodyLength: Infinity,
       maxContentLength: Infinity,
-      headers: { ...authHeaders(), ...form.getHeaders() },
+      headers: {
+        Authorization: `Bearer ${LIGHTHOUSE_API_KEY}`,
+        ...form.getHeaders(),
+      },
     }
   );
 
-  return res.data.IpfsHash;
+  return lhRes.data.Hash;
 }
 
 /**

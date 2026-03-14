@@ -14,11 +14,11 @@ export default function ENSConfigSection() {
         <div className="rounded-t-[48px] border-2 border-gray-200 p-2 pb-0">
           <div className="grid md:grid-cols-3 gap-2">
 
-            {/* Blue — CLI */}
+            {/* Blue — GitHub Connect */}
             <div className="rounded-[36px] p-8 flex flex-col min-h-64 relative overflow-hidden" style={{ backgroundColor: '#0081BC' }}>
-              <h3 className="text-white font-bold text-xl mb-3">web3deploy CLI</h3>
+              <h3 className="text-white font-bold text-xl mb-3">GitHub Connect</h3>
               <p className="text-blue-100 text-base leading-relaxed">
-                Your deploy journey starts here. One command to build, pin, and update your ENS domain.
+                Connect your repo and deploy on every push. D3PLOY handles the build, pin, and ENS update automatically.
               </p>
               <div
                 className="absolute bottom-6 right-6 w-16 h-16 border-2 border-blue-300 rounded-sm"

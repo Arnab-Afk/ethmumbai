@@ -34,7 +34,8 @@ export default function ProblemSection() {
               <div className="w-3 h-3 rounded-full bg-green-500"></div>
             </div>
             <div className="font-mono text-sm space-y-1.5">
-              <div><span className="text-[#E91E8C]">$ </span><span className="text-white">web3deploy push</span></div>
+              <div className="text-gray-500 text-xs mb-2"># GitHub Actions · deploy.yml · push to main</div>
+              <div><span className="text-yellow-400">▶ </span><span className="text-white">Run deploy job</span></div>
               <div className="text-gray-400">Building... <span className="text-green-400">✓ dist/ (2.3MB, 847 files)</span></div>
               <div className="text-gray-400">Uploading to Pinata... <span className="text-green-400">✓ bafybeig3...</span></div>
               <div className="text-gray-400">Pinning to web3.storage... <span className="text-green-400">✓ bafybeig3...</span></div>
