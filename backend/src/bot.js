@@ -375,8 +375,20 @@ bot.on("text", async (ctx) => {
 // ── Export ────────────────────────────────────────────────────────────────────
 
 function launch() {
-  bot.launch();
-  console.log("[bot] Telegram bot started.");
+  // Catch runtime polling errors so transient Telegram/network issues
+  // do not terminate the entire backend process.
+  bot.catch((err) => {
+    console.error("[bot] Telegram polling error:", err?.message || err);
+  });
+
+  Promise.resolve(bot.launch())
+    .then(() => {
+      console.log("[bot] Telegram bot started.");
+    })
+    .catch((err) => {
+      console.error("[bot] Telegram bot launch failed:", err?.message || err);
+      console.error("[bot] Continuing without Telegram bot. API server remains online.");
+    });
 
   // Graceful shutdown
   process.once("SIGINT",  () => bot.stop("SIGINT"));
