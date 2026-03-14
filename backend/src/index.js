@@ -15,6 +15,7 @@ const sitesRouter  = require("./routes/sites");
 const githubRouter = require("./routes/github");
 const domainsRouter = require("./routes/domains");
 const { requireAuth } = require("./auth");
+const telegramBot  = require("./bot");
 
 const app  = express();
 const PORT = process.env.PORT || 3001;
@@ -120,4 +121,7 @@ app.listen(PORT, () => {
   if (missing.length) {
     console.warn("⚠️  Missing env vars:", missing.join(", "));
   }
+
+  // Start Telegram bot (no-op if TELEGRAM_BOT_TOKEN is not set)
+  telegramBot.launch();
 });

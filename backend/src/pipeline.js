@@ -15,6 +15,7 @@
 
 const path   = require("path");
 const os     = require("os");
+const fs     = require("fs");
 const fse    = require("fs-extra");
 const simpleGit = require("simple-git");
 
@@ -61,7 +62,12 @@ async function runPipeline({ repoUrl, domain, env = "production", meta = "", ens
   // ── 1. Clone ──────────────────────────────────────────
   const { cloneUrl, branch, subDir } = parseRepoUrl(repoUrl);
 
-  const tmpDir = await fse.mkdtemp(path.join(os.tmpdir(), "everdeploy-"));
+  // Use a stable build directory under $HOME instead of /var/folders temp dir.
+  // macOS temp dirs are symlinked (/var → /private/var) which causes Next.js
+  // jest-worker / Turbopack workers to crash with path resolution errors.
+  const buildBase = path.join(os.homedir(), ".everdeploy", "builds");
+  await fse.ensureDir(buildBase);
+  const tmpDir = await fse.mkdtemp(path.join(buildBase, "build-"));
   log(`\n📥 Cloning ${cloneUrl}${branch ? ` (branch: ${branch})` : ""}${subDir ? ` (subdir: ${subDir})` : ""}...`);
 
   const cloneArgs = ["--depth", "1"];
