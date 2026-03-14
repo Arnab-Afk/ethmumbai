@@ -42,6 +42,10 @@ export default function ConnectPage() {
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
+    if (!getToken()) {
+      router.replace("/login");
+      return;
+    }
     loadRepos();
     loadConnected();
   }, [router]);
@@ -56,6 +60,7 @@ export default function ConnectPage() {
       const e = err as Error;
       if (e.message.includes("401") || e.message.includes("Authentication")) {
         clearToken();
+        router.replace("/login");
         return;
       }
       if (e.message.includes("GitHub token")) {

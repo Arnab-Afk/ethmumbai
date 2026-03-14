@@ -46,6 +46,8 @@ export default function ProjectPage() {
           const err = siteRes.reason as Error;
           if (err.message.includes("401") || err.message.includes("Authentication")) {
             clearToken();
+            router.replace("/login");
+            return;
           }
           setError(err.message);
         }

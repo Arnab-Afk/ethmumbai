@@ -3,35 +3,12 @@ import HowItWorks from "./components/HowItWorks";
 import ENSConfigSection from "./components/ENSConfigSection";
 import IntegrationsSection from "./components/IntegrationsSection";
 import Footer from "./components/Footer";
+import Navbar from "./components/Navbar";
 
 export default function Home() {
   return (
     <div className="bg-[#F8F9FA] text-black min-h-screen overflow-x-hidden">
-      <nav className="flex items-center justify-between px-4 md:px-8 py-6 relative z-50">
-        <div className="flex items-center">
-          <span className="text-4xl tracking-tight" style={{ fontFamily: 'var(--font-bitcount)' }}>D3PLOY</span>
-        </div>
-        <div className="hidden md:flex items-center space-x-8 lg:space-x-10 text-xs lg:text-sm font-semibold uppercase tracking-wider">
-          <a className="hover:text-[#0081BC] transition-colors" href="#why">
-            Why
-          </a>
-          <a className="hover:text-[#0081BC] transition-colors" href="#how-it-works">
-            How It Works
-          </a>
-          <a className="hover:text-[#0081BC] transition-colors" href="#deploy">
-            Deploy
-          </a>
-          <a className="hover:text-[#0081BC] transition-colors" href="#integrations">
-            Integrations
-          </a>
-        </div>
-        <a
-          className="bg-[#0081BC] text-white px-6 md:px-8 py-3 md:py-4 rounded-xl font-bold text-xs md:text-sm uppercase tracking-widest hover:brightness-110 transition-all"
-          href="#"
-        >
-          Start Deploying
-        </a>
-      </nav>
+      <Navbar />
 
       <main className="relative flex flex-col items-center justify-center pt-12 md:pt-24 pb-20 md:pb-32 px-4 max-w-[1400px] mx-auto min-h-[calc(100vh-120px)]">
         {/* Animated SVG decorative elements */}

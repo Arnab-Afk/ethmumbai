@@ -56,6 +56,14 @@ function DashboardContent() {
     }
   }, [searchParams, router]);
 
+  // Auth guard — redirect to login if no token
+  useEffect(() => {
+    const urlToken = searchParams.get("token");
+    if (!urlToken && !getToken()) {
+      router.replace("/login");
+    }
+  }, [searchParams, router]);
+
   const loadData = useCallback(async () => {
     const token = getToken();
     if (!token) return;
@@ -100,6 +108,7 @@ function DashboardContent() {
       if (err instanceof Error) {
         if (err.message.includes("401") || err.message.includes("Authentication")) {
           clearToken();
+          router.replace("/login");
         } else {
           setError(err.message);
         }

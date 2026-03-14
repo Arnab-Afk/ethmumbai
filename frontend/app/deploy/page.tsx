@@ -24,7 +24,12 @@ export default function DeployPage() {
   const logRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<(() => void) | null>(null);
 
-  // auth guard removed – all pages are open
+  // Auth guard — redirect to login if no token (backend requires auth for /api/deploy)
+  useEffect(() => {
+    if (!getToken()) {
+      router.replace("/login");
+    }
+  }, [router]);
 
   // Auto-scroll log
   useEffect(() => {

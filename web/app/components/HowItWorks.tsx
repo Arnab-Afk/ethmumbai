@@ -3,8 +3,8 @@ export default function HowItWorks() {
     <section id="how-it-works" className="py-16 px-4 md:px-8" style={{ backgroundColor: '#F4F4F4' }}>
       <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
 
-        {/* Decorative bars */}
-        <div className="relative h-28 mb-4 overflow-hidden">
+        {/* Decorative bars — hidden on mobile */}
+        <div className="relative h-28 mb-4 overflow-hidden hidden md:block">
           {/* Left green bars */}
           <div className="absolute left-0 top-3 space-y-1.5">
             <div className="h-9 w-72 rounded-sm" style={{ backgroundColor: '#2E6B2E' }}></div>
