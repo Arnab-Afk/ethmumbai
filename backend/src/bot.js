@@ -1,12 +1,13 @@
 /**
  * src/bot.js — D3PLOY Telegram Bot
  *
- * A chat-based deploy interface, powered by OpenClaw skill integration.
- * Lets users deploy directly from Telegram by providing a GitHub repo
- * and ENS domain — no dashboard required.
+ * A chat-based deploy interface powered by OpenClaw + HeyElsa.
+ * Lets users deploy directly from Telegram by either guided flow (/deploy)
+ * or by pasting a GitHub URL for instant automated deployment.
  *
  * Conversation flow:
  *   /deploy → ask repo URL → ask domain → ask env (optional) → run pipeline → stream logs
+ *   paste GitHub URL in chat → OpenClaw planner → auto deploy
  *   /status → show active deploy count
  *   /sites  → list deployed domains
  *   /help   → command reference
@@ -16,6 +17,8 @@
 
 const { Telegraf, Markup } = require("telegraf");
 const { runPipeline }      = require("./pipeline");
+const { resolveDeployIntent } = require("./openclaw");
+const { buildAutoAssignedEnsName, DEFAULT_PARENT } = require("./ens");
 
 // ── OpenRouter LLM setup ──────────────────────────────────────────────────────
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
@@ -31,8 +34,8 @@ You help users with:
 - Explaining Web3, decentralized hosting, and the D3PLOY architecture
 
 Keep responses concise, friendly, and helpful. Use emoji sparingly.
-If the user wants to deploy, guide them to use the /deploy command.
-You are powered by D3PLOY + OpenClaw x402.`;
+If the user sends a GitHub URL, mention that OpenClaw + HeyElsa can auto-deploy it.
+You are powered by D3PLOY + OpenClaw x HeyElsa x402.`;
 
 // Per-chat conversation history (last 10 turns)
 const chatHistories = new Map();
@@ -164,6 +167,68 @@ function makeLogBatcher(ctx, batchMs = 2000) {
   };
 }
 
+async function runDeployForSession(ctx, chatId, s, source = "guided", plannerReason = "") {
+  s.step = STEPS.DEPLOY;
+
+  const domainDisplay = s.domainMode === "auto"
+    ? `\`${s.domain}\` (auto-assigned)`
+    : `\`${s.domain}\``;
+
+  await ctx.replyWithMarkdown(
+    `✅ *Deploy Summary*\n\n` +
+    `📦 Repo: \`${s.repoUrl}\`\n` +
+    `🌐 Domain: ${domainDisplay}\n` +
+    `🏷️  Env: \`${s.env}\`\n` +
+    (plannerReason ? `🧠 Planner: ${plannerReason}\n` : "") +
+    `\nLaunching pipeline... this usually takes 1–3 minutes ⏱️`,
+    Markup.removeKeyboard()
+  );
+
+  const { log, flush } = makeLogBatcher(ctx);
+
+  try {
+    const receipt = await runPipeline(
+      {
+        repoUrl: s.repoUrl,
+        domain: s.domain,
+        env: s.env,
+        meta: `telegram:${ctx.from.username || ctx.from.id},source:${source}`,
+        ens: {
+          mode: s.domainMode,
+          fullName: s.domain,
+          ipnsKey: null,
+        },
+      },
+      log
+    );
+
+    await flush();
+
+    const ensLine = receipt.ens?.name
+      ? `🌐 ENS: \`${receipt.ens.name}\` → ${receipt.ens.contenthash || "update pending"}\n`
+      : "";
+
+    await ctx.replyWithMarkdown(
+      `🎉 *Deploy Complete!*\n\n` +
+      `📦 CID: \`${receipt.cid}\`\n` +
+      ensLine +
+      `⏱️  Elapsed: ${receipt.elapsed}\n\n` +
+      `*Live URLs:*\n` +
+      `• [ipfs.io](${receipt.gateways.ipfs_io})\n` +
+      `• [dweb.link](${receipt.gateways.dweb})\n` +
+      `• [w3s.link](${receipt.gateways.w3s})\n\n` +
+      `_Logged on-chain via DeployRegistry_ ✅`
+    );
+  } catch (err) {
+    await flush();
+    await ctx.replyWithMarkdown(
+      `❌ *Deploy failed*\n\n\`\`\`\n${err.message}\n\`\`\`\n\nFix the error and try /deploy again.`
+    );
+  } finally {
+    resetSession(chatId);
+  }
+}
+
 // ── /start & /help ────────────────────────────────────────────────────────────
 
 const HELP_TEXT = `
@@ -176,13 +241,16 @@ _Deploy anything to IPFS + ENS from Telegram_
 /status — active deploys running
 /help   — show this message
 
+*Fastest flow*
+Paste a GitHub URL directly and OpenClaw + HeyElsa will auto-run deployment.
+
 *How it works*
 1. You give me a GitHub repo URL
-2. You give me an ENS domain (or I assign a free \`app.d3ploy.eth\` subdomain)
+2. I assign a free subdomain under \`${DEFAULT_PARENT}\` (or use guided custom mode)
 3. I build it, upload to IPFS, update ENS, and log it on-chain
 4. You get a live IPFS link — no servers, no Vercel, no censorship
 
-Powered by *D3PLOY* + *Elsa OpenClaw x402* ⚡
+Powered by *D3PLOY* + *OpenClaw x HeyElsa x402* ⚡
 `;
 
 bot.start((ctx) => ctx.replyWithMarkdown(HELP_TEXT));
@@ -249,7 +317,7 @@ bot.on("text", async (ctx) => {
     s.repoUrl = text;
     s.step    = STEPS.DOMAIN;
     return ctx.replyWithMarkdown(
-      "🌐 *Step 2/3 — ENS Domain*\n\nEnter your ENS domain, e.g. `myapp.eth`\n\nOR type `auto` and I'll assign you a free `app.d3ploy.eth` subdomain automatically."
+      `🌐 *Step 2/3 — ENS Domain*\n\nEnter your ENS domain, e.g. \`myapp.eth\`\n\nOR type \`auto\` and I'll assign you a free subdomain under \`${DEFAULT_PARENT}\` automatically.`
     );
   }
 
@@ -260,7 +328,7 @@ bot.on("text", async (ctx) => {
 
     if (input === "auto") {
       s.domainMode = "auto";
-      s.domain     = null; // server will assign
+      s.domain = buildAutoAssignedEnsName(DEFAULT_PARENT);
     } else {
       if (!isValidDomain(input)) {
         return ctx.reply("❌ Invalid domain. Enter an ENS name like `myapp.eth` or type `auto`.");
@@ -292,75 +360,41 @@ bot.on("text", async (ctx) => {
     }
 
     s.env  = env;
-    s.step = STEPS.DEPLOY;
-
-    // Show summary + confirm
-    const domainDisplay = s.domainMode === "auto"
-      ? "auto-assigned (`app.d3ploy.eth`)"
-      : `\`${s.domain}\``;
-
-    await ctx.replyWithMarkdown(
-      `✅ *Deploy Summary*\n\n` +
-      `📦 Repo: \`${s.repoUrl}\`\n` +
-      `🌐 Domain: ${domainDisplay}\n` +
-      `🏷️  Env: \`${s.env}\`\n\n` +
-      `Launching pipeline... this usually takes 1–3 minutes ⏱️`,
-      Markup.removeKeyboard()
-    );
-
-    // ── Run pipeline ─────────────────────────────────────────
-
-    const { log, flush } = makeLogBatcher(ctx);
-
-    try {
-      const receipt = await runPipeline(
-        {
-          repoUrl:    s.repoUrl,
-          domain:     s.domain || "auto",
-          env:        s.env,
-          meta:       `telegram:${ctx.from.username || ctx.from.id}`,
-          ens: {
-            mode:     s.domainMode,
-            fullName: s.domain || null,
-            ipnsKey:  null,
-          },
-        },
-        log
-      );
-
-      await flush();
-
-      // ── Success message ──────────────────────────────────
-      const ensLine = receipt.ens?.name
-        ? `🌐 ENS: \`${receipt.ens.name}\` → ${receipt.ens.contenthash || "update pending"}\n`
-        : "";
-
-      await ctx.replyWithMarkdown(
-        `🎉 *Deploy Complete!*\n\n` +
-        `📦 CID: \`${receipt.cid}\`\n` +
-        ensLine +
-        `⏱️  Elapsed: ${receipt.elapsed}\n\n` +
-        `*Live URLs:*\n` +
-        `• [ipfs.io](${receipt.gateways.ipfs_io})\n` +
-        `• [dweb.link](${receipt.gateways.dweb})\n` +
-        `• [w3s.link](${receipt.gateways.w3s})\n\n` +
-        `_Logged on-chain via DeployRegistry_ ✅`
-      );
-    } catch (err) {
-      await flush();
-      await ctx.replyWithMarkdown(
-        `❌ *Deploy failed*\n\n\`\`\`\n${err.message}\n\`\`\`\n\nFix the error and try /deploy again.`
-      );
-    } finally {
-      resetSession(chatId);
-    }
-
+    await runDeployForSession(ctx, chatId, s, "guided");
     return;
   }
 
   // ── Idle — AI conversation ─────────────────────────────────
 
   if (s.step === STEPS.IDLE) {
+    const deployIntent = await resolveDeployIntent(text, (line) => console.log(`[bot/openclaw] ${line}`));
+    if (deployIntent?.repoUrl) {
+      s.repoUrl = deployIntent.repoUrl;
+      s.env = deployIntent.env || "production";
+
+      // Keep one-message flow fully automated in chat.
+      if (deployIntent.domainMode === "custom") {
+        s.domainMode = "auto";
+        s.domain = buildAutoAssignedEnsName(DEFAULT_PARENT);
+        await ctx.replyWithMarkdown(
+          `🧠 OpenClaw understood your deploy intent, but custom ENS needs pre-verified IPNS setup.\n` +
+          `Using auto ENS for full automation: \`${s.domain}\``
+        );
+      } else {
+        s.domainMode = "auto";
+        s.domain = deployIntent.domain || buildAutoAssignedEnsName(DEFAULT_PARENT);
+      }
+
+      await runDeployForSession(
+        ctx,
+        chatId,
+        s,
+        "openclaw",
+        `${deployIntent.planner || "heyelsa"} (${s.domainMode}/${s.env})`
+      );
+      return;
+    }
+
     const aiReply = await askAI(chatId, text);
     if (aiReply) {
       await ctx.reply(aiReply, { parse_mode: "Markdown" }).catch(() =>

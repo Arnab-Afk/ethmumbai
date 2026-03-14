@@ -23,6 +23,7 @@ const { buildRepo, detectFramework } = require("./builder");
 const { uploadDir, warmGateways }    = require("./ipfs");
 const { logDeploy, updateIPNS }      = require("./chain");
 const { upsertAutoSubnameContenthash } = require("./ens");
+const { buildAutoAssignedEnsName, DEFAULT_PARENT } = require("./ens");
 
 const IPFS_GATEWAY = process.env.IPFS_GATEWAY || "https://ipfs.io";
 
@@ -52,11 +53,16 @@ function parseRepoUrl(rawUrl) {
 
 async function runPipeline({ repoUrl, domain, env = "production", meta = "", ens = null }, log = console.log) {
   const startTime = Date.now();
+  const shouldAutoAssignDomain = !domain || domain === "auto" || domain === "AUTO";
+  const resolvedDomain = shouldAutoAssignDomain
+    ? buildAutoAssignedEnsName(DEFAULT_PARENT)
+    : domain;
+
   log("═══════════════════════════════════════════════════");
   log("  EverDeploy Pipeline");
   log("═══════════════════════════════════════════════════");
   log(`  Repo   : ${repoUrl}`);
-  log(`  Domain : ${domain}`);
+  log(`  Domain : ${resolvedDomain}`);
   log(`  Env    : ${env}`);
 
   // ── 1. Clone ──────────────────────────────────────────
@@ -93,7 +99,7 @@ async function runPipeline({ repoUrl, domain, env = "production", meta = "", ens
 
     // ── 3. First IPFS upload ───────────────────────────
     log("\n📤 IPFS upload pass 1...");
-    const baseCid = await uploadDir(outDir, `${domain}:pass1`, log);
+    const baseCid = await uploadDir(outDir, `${resolvedDomain}:pass1`, log);
     log(`  CID (pass 1): ${baseCid}`);
 
     let finalCid = baseCid;
@@ -105,15 +111,19 @@ async function runPipeline({ repoUrl, domain, env = "production", meta = "", ens
       const { outDir: outDir2 } = await buildRepo(buildDir, baseCid, log);
 
       log("\n📤 IPFS upload pass 2...");
-      finalCid = await uploadDir(outDir2, `${domain}:pass2`, log);
+      finalCid = await uploadDir(outDir2, `${resolvedDomain}:pass2`, log);
       log(`  CID (final): ${finalCid}`);
     }
 
     // ── 5. ENS update ──────────────────────────────────
-    const ensConfig = ens || { mode: "custom", fullName: domain };
+    const ensConfig = ens || { mode: "custom", fullName: resolvedDomain };
+    const resolvedEnsName =
+      ensConfig.mode === "auto" && (!ensConfig.fullName || ensConfig.fullName === "auto")
+        ? buildAutoAssignedEnsName(DEFAULT_PARENT)
+        : (ensConfig.fullName || resolvedDomain);
     let ensResult = {
       mode: ensConfig.mode || "custom",
-      name: ensConfig.fullName || domain,
+      name: resolvedEnsName,
       contenthash: ensConfig.mode === "auto" ? `ipfs://${finalCid}` : (ensConfig.ipnsKey ? `ipns://${ensConfig.ipnsKey}` : null),
       managedBy: ensConfig.mode === "auto" ? "server" : "wallet",
       status: ensConfig.mode === "auto" ? "updated" : "pending-user-transaction",
@@ -121,7 +131,7 @@ async function runPipeline({ repoUrl, domain, env = "production", meta = "", ens
 
     if (ensConfig.mode === "auto") {
       log("\n🪪 Updating ENS (Namespace Offchain)...");
-      const ns = await upsertAutoSubnameContenthash(ensConfig.fullName || domain, finalCid, log);
+      const ns = await upsertAutoSubnameContenthash(resolvedEnsName, finalCid, log);
       ensResult = {
         mode: "auto",
         name: ns.fullName,
@@ -135,10 +145,10 @@ async function runPipeline({ repoUrl, domain, env = "production", meta = "", ens
 
     // ── 6. On-chain logging ────────────────────────────
     log("\n⛓️  Logging to blockchain...");
-    await logDeploy(domain, finalCid, env, meta, log);
+    await logDeploy(resolvedDomain, finalCid, env, meta, log);
 
     log("\n🔗 Updating IPNS on-chain...");
-    await updateIPNS(domain, finalCid, { ipnsKey: ensConfig.ipnsKey || null }, log);
+    await updateIPNS(resolvedDomain, finalCid, { ipnsKey: ensConfig.ipnsKey || null }, log);
 
     // ── 7. Gateway warmup ──────────────────────────────
     log("\n🔥 Warming gateways...");
@@ -148,7 +158,7 @@ async function runPipeline({ repoUrl, domain, env = "production", meta = "", ens
     const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
     const receipt = {
       cid: finalCid,
-      domain,
+      domain: resolvedDomain,
       env,
       framework: fw,
       elapsed: `${elapsed}s`,

@@ -11,6 +11,7 @@
 
 const express      = require("express");
 const { runPipeline } = require("../pipeline");
+const { buildAutoAssignedEnsName, DEFAULT_PARENT } = require("../ens");
 
 const router = express.Router();
 
@@ -23,12 +24,17 @@ const MAX_CONCURRENT = 3;
 router.post("/", async (req, res) => {
   const {
     repoUrl,
-    domain,
+    domain: rawDomain,
     env = "production",
     meta = "",
     domainMode = "custom",
     ipnsKey = null,
   } = req.body;
+
+  const isAutoMode = domainMode === "auto";
+  const domain = isAutoMode
+    ? (rawDomain && rawDomain !== "auto" ? rawDomain : buildAutoAssignedEnsName(DEFAULT_PARENT))
+    : rawDomain;
 
   // Validation
   if (!repoUrl) return res.status(400).json({ error: "repoUrl is required" });
