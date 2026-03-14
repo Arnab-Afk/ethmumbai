@@ -225,7 +225,7 @@ export default function Navbar() {
                 </div>
               )}
               <button
-                onClick={handleLogout}
+                onClick={() => handleLogout()}
                 className="text-xs font-medium text-red-300 border border-red-300/40 px-3 py-1.5 rounded-full hover:bg-red-400/10 hover:text-red-200 transition-colors tracking-widest"
               >
                 LOGOUT
