@@ -9,7 +9,7 @@ const integrations = [
 
 export default function IntegrationsSection() {
   return (
-    <section className="py-16 px-4 md:px-8 bg-white">
+    <section id="integrations" className="py-16 px-4 md:px-8 bg-white">
       <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
 
         <h2 className="font-extrabold leading-tight mb-4" style={{ fontSize: 'clamp(36px, 6vw, 72px)', color: '#000' }}>

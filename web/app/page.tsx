@@ -29,17 +29,17 @@ export default function Home() {
           <span className="text-2xl font-bold tracking-tight">D3PLOY</span>
         </div>
         <div className="hidden md:flex items-center space-x-8 lg:space-x-10 text-xs lg:text-sm font-semibold uppercase tracking-wider">
-          <a className="hover:text-[#0081BC] transition-colors" href="#">
-            Features
+          <a className="hover:text-[#0081BC] transition-colors" href="#why">
+            Why
           </a>
-          <a className="hover:text-[#0081BC] transition-colors" href="#">
-            Architecture
+          <a className="hover:text-[#0081BC] transition-colors" href="#how-it-works">
+            How It Works
           </a>
-          <a className="hover:text-[#0081BC] transition-colors" href="#">
-            CLI
+          <a className="hover:text-[#0081BC] transition-colors" href="#deploy">
+            Deploy
           </a>
-          <a className="hover:text-[#0081BC] transition-colors" href="#">
-            Docs
+          <a className="hover:text-[#0081BC] transition-colors" href="#integrations">
+            Integrations
           </a>
         </div>
         <a

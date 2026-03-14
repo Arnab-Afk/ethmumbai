@@ -1,6 +1,6 @@
 export default function ENSConfigSection() {
   return (
-    <section className="py-16 px-4 md:px-8 bg-white">
+    <section id="deploy" className="py-16 px-4 md:px-8 bg-white">
       <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
 
         <h2 className="text-5xl md:text-7xl font-extrabold leading-tight mb-4" style={{ color: '#000' }}>

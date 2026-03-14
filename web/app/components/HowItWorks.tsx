@@ -1,6 +1,6 @@
 export default function HowItWorks() {
   return (
-    <section className="py-16 px-4 md:px-8" style={{ backgroundColor: '#F4F4F4' }}>
+    <section id="how-it-works" className="py-16 px-4 md:px-8" style={{ backgroundColor: '#F4F4F4' }}>
       <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
 
         {/* Decorative bars */}

@@ -1,6 +1,6 @@
 export default function ProblemSection() {
   return (
-    <div className="py-12 px-4 md:px-8 space-y-10" style={{ maxWidth: '1400px', margin: '0 auto' }}>
+    <div id="why" className="py-12 px-4 md:px-8 space-y-10" style={{ maxWidth: '1400px', margin: '0 auto' }}>
 
       {/* Slide 1: Blue — Deploy demo */}
       <div className="rounded-2xl overflow-hidden">
