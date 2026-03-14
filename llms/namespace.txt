@@ -1,0 +1,89 @@
+# Namespace
+
+## Docs
+
+- [Overview](https://docs.namespace.ninja/api-reference/introduction.md): API reference for the Mint Manager and Offchain Manager (Subnames) APIs with authentication and endpoints.
+- [Estimate mint params](https://docs.namespace.ninja/api-reference/mint-manager/estimate-mint-params.md): Get estimated minting parameters and validation results.
+- [Generate mint params](https://docs.namespace.ninja/api-reference/mint-manager/generate-mint-params.md): Generate mint parameters and return a signed payload.
+- [Create or update a subname](https://docs.namespace.ninja/api-reference/offchain-manager/create-or-update-a-subname.md): Creates or updates an offchain subname under a parent ENS name. Requires a valid API key.
+- [Delete a subname](https://docs.namespace.ninja/api-reference/offchain-manager/delete-a-subname.md): Deletes an existing offchain subname by its full name. Requires a valid API key.
+- [Get subname by full name](https://docs.namespace.ninja/api-reference/offchain-manager/get-subname-by-full-name.md): Retrieves the details of a specific offchain subname using its full name (e.g., alice.oppunk.eth). Returns the subname details if found.
+- [Query subnames](https://docs.namespace.ninja/api-reference/offchain-manager/query-subnames.md): Searches for subnames matching the provided criteria.
+- [Bulk reverse resolve](https://docs.namespace.ninja/api-reference/resolvio/bulk-reverse-resolve.md): Resolve multiple Ethereum addresses to their primary ENS names in a single request
+- [Get ENS addresses](https://docs.namespace.ninja/api-reference/resolvio/get-ens-addresses.md): Retrieve cryptocurrency addresses associated with an ENS name
+- [Get ENS content hash](https://docs.namespace.ninja/api-reference/resolvio/get-ens-contenthash.md): Retrieve the content hash associated with an ENS name (IPFS, IPNS, or other content identifiers)
+- [Get ENS profile](https://docs.namespace.ninja/api-reference/resolvio/get-ens-profile.md): Retrieve comprehensive profile information for an ENS name including addresses, texts, and content hash
+- [Get ENS text records](https://docs.namespace.ninja/api-reference/resolvio/get-ens-texts.md): Retrieve text records associated with an ENS name (e.g., avatar, description, keywords)
+- [Reverse resolve single address](https://docs.namespace.ninja/api-reference/resolvio/reverse-resolve-single.md): Resolve a single Ethereum address to its primary ENS name
+- [Address SDK](https://docs.namespace.ninja/changelog/address-sdk.md): Changelog for the Address SDK with version updates and changes.
+- [Indexer SDK](https://docs.namespace.ninja/changelog/indexer-sdk.md): Changelog for the Indexer SDK with version updates and changes.
+- [Mint SDK](https://docs.namespace.ninja/changelog/mint-sdk.md): Changelog for the Mint SDK with version updates and changes.
+- [Offchain SDK](https://docs.namespace.ninja/changelog/offchain-sdk.md): Changelog for the Offchain SDK with version updates and changes.
+- [Building with AI](https://docs.namespace.ninja/developer-guide/ai-development.md): AI DevX at your service.
+- [Onchain Subnames](https://docs.namespace.ninja/developer-guide/architecture/onchain-subnames.md): Learn about Namespace onchain subname activation, minting, and resolution processes.
+- [How-to Guides and Demos](https://docs.namespace.ninja/developer-guide/guide.md): Step-by-step guides and video demos for using Namespace products and services.
+- [How To Create Offchain Subnames](https://docs.namespace.ninja/developer-guide/guide/create-offchain-subnames.md): Complete guide to creating and using gasless offchain ENS subnames with the Namespace Offchain Manager SDK.
+- [How To Mint L1 & L2 Subnames](https://docs.namespace.ninja/developer-guide/guide/mint-l1-l2-subnames.md): Complete guide to minting ENS subnames on L1 and L2 networks using the Namespace Mint Manager SDK.
+- [Subname Developer Guide](https://docs.namespace.ninja/developer-guide/guide/subpages.md): Build and customize your own ENS subname minting website using the white label starter kit.
+- [Overview](https://docs.namespace.ninja/developer-guide/integrations.md): Ready-to-use integration examples and starter kits for ENS offchain subnames
+- [Openfort Starter Kit](https://docs.namespace.ninja/developer-guide/integrations/starters/openfort-nextjs.md): Next.js starter with Openfort embedded wallets, Offchain Subnames, identity resolution, and avatar uploads.
+- [Privy Starter (Next.js)](https://docs.namespace.ninja/developer-guide/integrations/starters/privy-nextjs.md): Ready-to-run Next.js starter with Privy auth, Offchain Subnames, reverse resolution, and profile flows.
+- [RainbowKit Starter (Next.js)](https://docs.namespace.ninja/developer-guide/integrations/starters/rainbowkit-nextjs.md): Ready-to-run Next.js starter with RainbowKit, reverse resolution for ENS subnames, and profile flows.
+- [Quickstart](https://docs.namespace.ninja/developer-guide/quickstart.md): Get started with Namespace subnames.
+- [Overview](https://docs.namespace.ninja/developer-guide/sdks/indexer-manager.md): Indexer Manager is a library for interacting with indexed data from Namespace smart contracts.
+- [Fetch L2 Registries](https://docs.namespace.ninja/developer-guide/sdks/indexer-manager/fetch-l2-registries.md): Fetch the information about the deployed NFT registry for an ENS name on a specific L2 network.
+- [Fetch L2 Subnames](https://docs.namespace.ninja/developer-guide/sdks/indexer-manager/fetch-l2-subnames.md): Fetch a single or multiple L2 subnames.
+- [Indexer SDK Installation](https://docs.namespace.ninja/developer-guide/sdks/indexer-manager/installation.md): Lightweight SDK for interacting with the Namespace Indexer to read indexed data from smart contracts.
+- [Overview](https://docs.namespace.ninja/developer-guide/sdks/introduction.md): Namespace offers different SDKs to interact with the Namespace backend APIs and smart contracts for ENS subname management.
+- [Overview](https://docs.namespace.ninja/developer-guide/sdks/mint-manager.md): TypeScript SDK for minting ENS subnames on Namespace, supporting Mainnet and L2 networks.
+- [Get Mint Details](https://docs.namespace.ninja/developer-guide/sdks/mint-manager/get-mint-details.md): Get the details about minting a single/specific subname under a listed ENS name.
+- [Get Mint Transaction Parameters](https://docs.namespace.ninja/developer-guide/sdks/mint-manager/get-mint-transaction-parameters.md): Generate all the required parameters needed to send a successful transaction and mint a subname on a given chain.
+- [Mint SDK Installation](https://docs.namespace.ninja/developer-guide/sdks/mint-manager/installation.md): Learn how to install and initialize the Namespace Mint SDK for minting ENS subnames.
+- [Check Subname Availability](https://docs.namespace.ninja/developer-guide/sdks/mint-manager/is-subname-available.md): Determine if a specific ENS subname is available for minting.
+- [Overview](https://docs.namespace.ninja/developer-guide/sdks/offchain-manager.md): TypeScript library for managing offchain subnames, text records, and data records in an ENS system with gasless operations.
+- [Address Records](https://docs.namespace.ninja/developer-guide/sdks/offchain-manager/address-records.md): Learn how to add, update, and delete blockchain address records associated with ENS subnames.
+- [Supported Chains](https://docs.namespace.ninja/developer-guide/sdks/offchain-manager/chainname.md): Learn about the ChainName enum and how it maps to the appropriate coin types.
+- [Create or Update Subname](https://docs.namespace.ninja/developer-guide/sdks/offchain-manager/create-update-subname.md): Create new ENS subnames or update existing ones with records and metadata.
+- [Metadata Records](https://docs.namespace.ninja/developer-guide/sdks/offchain-manager/data-records.md): Manage custom metadata records for ENS subnames. Useful for discovery and filtering.
+- [Delete Subname](https://docs.namespace.ninja/developer-guide/sdks/offchain-manager/delete-subname.md): Permanently remove an ENS subname and all associated records using the Offchain SDK.
+- [Initialize API Key](https://docs.namespace.ninja/developer-guide/sdks/offchain-manager/generate-api-key.md): Learn how to generate and configure API keys for Namespace Offchain SDK operations, including address-based and domain-specific keys.
+- [Get Filtered Subnames](https://docs.namespace.ninja/developer-guide/sdks/offchain-manager/get-filtered-subnames.md): Retrieve a list of subnames using flexible filters such as label, owner, metadata, and pagination.
+- [Get Single Subname](https://docs.namespace.ninja/developer-guide/sdks/offchain-manager/get-single-subname.md): Retrieve details for a specific ENS subname by its full name. Returns a single result or null if not found.
+- [Offchain SDK Installation](https://docs.namespace.ninja/developer-guide/sdks/offchain-manager/installation.md): Learn how to install and initialize the Namespace Offchain SDK for managing ENS subnames and records.
+- [Check Subname Availability](https://docs.namespace.ninja/developer-guide/sdks/offchain-manager/is-subname-available.md): Determine if a specific ENS subname is available for registration.
+- [Set Default EVM Address](https://docs.namespace.ninja/developer-guide/sdks/offchain-manager/set-default-evm-address.md): Set the same EVM address for all EVM-compatible chains in a single operation.
+- [Text Records](https://docs.namespace.ninja/developer-guide/sdks/offchain-manager/text-records.md): Manage text records for ENS subnames.
+- [Skills](https://docs.namespace.ninja/developer-guide/skills.md): Install skills to give your AI agent deep knowledge of a specific SDK.
+- [Getting started](https://docs.namespace.ninja/getting-started.md): What subnames are, how to use them, and where to begin
+- [Learn more](https://docs.namespace.ninja/learn-more.md): Learn more about Namespace
+- [For ENS name owners, creators, and communities](https://docs.namespace.ninja/overview/for-name-owners.md): Launch, list, and sell subnames with no code
+- [For product teams & platforms](https://docs.namespace.ninja/overview/for-product-teams.md): How wallets, apps, and L2s can leverage subnames
+- [WaaS Integration Guide](https://docs.namespace.ninja/overview/integration/waas.md): Complete guide for WaaS and wallet infrastructure providers to integrate ENS subnames and improve wallet UX with human-readable names.
+- [Subnames](https://docs.namespace.ninja/overview/subnames.md): Learn more about Subnames.
+- [Use Cases](https://docs.namespace.ninja/overview/use-cases.md): Explore real-world applications of Namespace subnames across wallets, payment apps, AI agents, games, communities, and more.
+- [Overview](https://docs.namespace.ninja/user-guide/app.md): Namespace App is a no-code interface for Onchain Subnames on L1 and L2 networks.
+- [Activate an ENS Name](https://docs.namespace.ninja/user-guide/app/activate-ens-name.md): Activating your ENS name on Namespace allows you and your community to mint subnames on Ethereum, Base, Optimism, and more chains.
+- [Search & Register ENS Subname](https://docs.namespace.ninja/user-guide/app/search-register.md): Search and registration page allows anyone to buy both ENS names and subnames with expanded search functionality.
+- [Custom Solution](https://docs.namespace.ninja/user-guide/custom-solutions.md): We help teams build custom ENS solutions and implementations
+- [Overview](https://docs.namespace.ninja/user-guide/dev-portal.md): Dev Portal is a front-end app for Offchain Subnames with developer tools.
+- [API Keys](https://docs.namespace.ninja/user-guide/dev-portal/api-keys.md): Generate and manage API keys for offchain subnames with address-based and domain-based options.
+- [Update Resolver](https://docs.namespace.ninja/user-guide/dev-portal/resolver-set.md): Update your name's resolver to make subnames resolvable in all ENS-supported apps using Namespace's Hybrid resolver.
+- [Create Offchain Subnames](https://docs.namespace.ninja/user-guide/dev-portal/subnames.md): Create and manage offchain subnames including text, address, and content hash records through the UI.
+- [ENS Widget](https://docs.namespace.ninja/user-guide/ens-widget.md): The easiest way to sell ENS Names and Subnames from your website.
+- [SDK and API](https://docs.namespace.ninja/user-guide/sdk-and-api.md): Quickest way to build ENS subname projects
+- [Subpages](https://docs.namespace.ninja/user-guide/subpages.md): White-label template with ENS subname onchain minting embedded.
+
+## OpenAPI Specs
+
+- [resolvio](https://docs.namespace.ninja/openapi/resolvio.json)
+- [mint-openapi](https://docs.namespace.ninja/openapi/mint-openapi.json)
+- [offchain-openapi](https://docs.namespace.ninja/openapi/offchain-openapi.json)
+
+## Optional
+
+- [App](https://app.namespace.ninja)
+- [Dev Portal](https://dev.namespace.ninja/)
+- [Blog](https://mintlify.com/blog)
+
+
+Built with [Mintlify](https://mintlify.com).

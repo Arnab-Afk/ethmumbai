@@ -40,6 +40,9 @@ function deleteSession(id) {
  * @property {string} repo
  * @property {string} branch        e.g. "main"
  * @property {string} domain        IPFS/ENS domain to log to
+ * @property {"auto"|"custom"} domainMode
+ * @property {string|null} customEnsName
+ * @property {string|null} parentEnsName
  * @property {string} env           production | staging | preview
  * @property {string} webhookSecret
  * @property {number} webhookId

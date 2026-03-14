@@ -21,10 +21,11 @@ const simpleGit = require("simple-git");
 const { buildRepo, detectFramework } = require("./builder");
 const { uploadDir, warmGateways }    = require("./ipfs");
 const { logDeploy, updateIPNS }      = require("./chain");
+const { upsertAutoSubnameContenthash } = require("./ens");
 
 const IPFS_GATEWAY = process.env.IPFS_GATEWAY || "https://ipfs.io";
 
-async function runPipeline({ repoUrl, domain, env = "production", meta = "" }, log = console.log) {
+async function runPipeline({ repoUrl, domain, env = "production", meta = "", ens = null }, log = console.log) {
   const startTime = Date.now();
   log("═══════════════════════════════════════════════════");
   log("  EverDeploy Pipeline");
@@ -69,14 +70,38 @@ async function runPipeline({ repoUrl, domain, env = "production", meta = "" }, l
       log(`  CID (final): ${finalCid}`);
     }
 
-    // ── 5. On-chain logging ────────────────────────────
+    // ── 5. ENS update ──────────────────────────────────
+    const ensConfig = ens || { mode: "custom", fullName: domain };
+    let ensResult = {
+      mode: ensConfig.mode || "custom",
+      name: ensConfig.fullName || domain,
+      contenthash: `ipfs://${finalCid}`,
+      managedBy: ensConfig.mode === "auto" ? "server" : "wallet",
+      status: ensConfig.mode === "auto" ? "updated" : "pending-user-transaction",
+    };
+
+    if (ensConfig.mode === "auto") {
+      log("\n🪪 Updating ENS (Namespace Offchain)...");
+      const ns = await upsertAutoSubnameContenthash(ensConfig.fullName || domain, finalCid, log);
+      ensResult = {
+        mode: "auto",
+        name: ns.fullName,
+        contenthash: ns.contenthash,
+        managedBy: "server",
+        status: ns.action,
+      };
+    } else {
+      log("\n🪪 Custom ENS mode detected (wallet tx required client-side).");
+    }
+
+    // ── 6. On-chain logging ────────────────────────────
     log("\n⛓️  Logging to blockchain...");
     await logDeploy(domain, finalCid, env, meta, log);
 
     log("\n🔗 Updating IPNS on-chain...");
     await updateIPNS(domain, finalCid, log);
 
-    // ── 6. Gateway warmup ──────────────────────────────
+    // ── 7. Gateway warmup ──────────────────────────────
     log("\n🔥 Warming gateways...");
     await warmGateways(finalCid, log);
 
@@ -94,6 +119,7 @@ async function runPipeline({ repoUrl, domain, env = "production", meta = "" }, l
         dweb:     `https://${finalCid}.ipfs.dweb.link/`,
         w3s:      `https://${finalCid}.ipfs.w3s.link/`,
       },
+      ens: ensResult,
       contracts: {
         DeployRegistry: process.env.REGISTRY_CONTRACT,
         IPNSRegistry:   process.env.IPNS_REGISTRY_CONTRACT,

@@ -128,7 +128,7 @@ export interface DeployReceipt {
 /** Start a deploy, streaming SSE log lines back to the caller.
  *  Returns an abort function to cancel the deploy stream. */
 export function deployStream(
-  data: { repoUrl: string; domain: string; env?: string; meta?: string },
+  data: { repoUrl: string; domain: string; env?: string; meta?: string; domainMode?: "auto" | "custom" },
   onLog: (line: string) => void,
   onDone: (receipt: DeployReceipt) => void,
   onError: (message: string) => void
@@ -213,6 +213,9 @@ export interface ConnectedRepo {
   repo: string;
   branch: string;
   domain: string;
+  domainMode: "auto" | "custom";
+  customEnsName?: string | null;
+  parentEnsName?: string | null;
   env: string;
   webhookId: number | null;
   connectedBy: string;
@@ -233,9 +236,11 @@ export async function getBranches(
 export async function connectRepo(data: {
   repoFullName: string;
   branch: string;
-  domain: string;
+  domain?: string;
+  domainMode?: "auto" | "custom";
+  customEnsName?: string;
   env: string;
-}): Promise<{ ok: boolean; key: string; webhookId: number | null; message: string }> {
+}): Promise<{ ok: boolean; key: string; webhookId: number | null; message: string; domain: string; domainMode: "auto" | "custom" }> {
   return apiFetch("/api/github/connect", {
     method: "POST",
     body: JSON.stringify(data),

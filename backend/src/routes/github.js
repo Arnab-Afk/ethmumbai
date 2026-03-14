@@ -22,6 +22,12 @@ const gh      = require("../github");
 const store   = require("../store");
 const { requireAuth } = require("../auth");
 const { runPipeline } = require("../pipeline");
+const {
+  DEFAULT_PARENT,
+  buildAutoAssignedEnsName,
+  isValidEnsName,
+  normalizeEnsName,
+} = require("../ens");
 
 const router = express.Router();
 
@@ -63,12 +69,30 @@ router.get("/repos/:owner/:repo/branches", requireAuth, async (req, res) => {
 // ── Connect a repo ────────────────────────────────────────────────────────────
 
 router.post("/connect", requireAuth, async (req, res) => {
-  const { repoFullName, branch = "main", domain, env = "production" } = req.body;
+  const {
+    repoFullName,
+    branch = "main",
+    domain,
+    env = "production",
+    domainMode = "auto",
+    customEnsName,
+  } = req.body;
   if (!repoFullName) return res.status(400).json({ error: "repoFullName required" });
-  if (!domain)       return res.status(400).json({ error: "domain required" });
 
   const [owner, repo] = repoFullName.split("/");
   if (!owner || !repo) return res.status(400).json({ error: "Invalid repoFullName (use owner/repo)" });
+
+  const mode = domainMode === "custom" ? "custom" : "auto";
+  const resolvedDomain = mode === "custom"
+    ? normalizeEnsName(customEnsName || domain)
+    : normalizeEnsName(domain || buildAutoAssignedEnsName(DEFAULT_PARENT));
+
+  if (!resolvedDomain) {
+    return res.status(400).json({ error: "domain could not be resolved" });
+  }
+  if (!isValidEnsName(resolvedDomain)) {
+    return res.status(400).json({ error: `Invalid ENS domain: ${resolvedDomain}` });
+  }
 
   try {
     const token      = githubToken(req);
@@ -83,15 +107,22 @@ router.post("/connect", requireAuth, async (req, res) => {
     }
 
     const key = store.connectRepo({
-      repoFullName, owner, repo, branch, domain, env,
+      repoFullName, owner, repo, branch,
+      domain: resolvedDomain,
+      domainMode: mode,
+      customEnsName: mode === "custom" ? resolvedDomain : null,
+      parentEnsName: mode === "auto" ? DEFAULT_PARENT : null,
+      env,
       webhookSecret: secret, webhookId,
       connectedBy: req.user.login,
     });
 
     res.json({
       ok: true, key, webhookId,
+      domain: resolvedDomain,
+      domainMode: mode,
       message: webhookId
-        ? `Webhook created — pushes to ${branch} auto-deploy to ${domain}`
+        ? `Webhook created — pushes to ${branch} auto-deploy to ${resolvedDomain}`
         : `Repo saved — add webhook manually at ${webhookUrl}`,
     });
   } catch (err) {
@@ -181,7 +212,16 @@ router.post(
     const log = (l) => console.log(`[webhook:${owner}/${repo}@${pushedBranch}] ${l}`);
     log(`Push by ${pusher} (${commit})`);
 
-    runPipeline({ repoUrl: cloneUrl, domain: config.domain, env: config.env, meta: `commit:${commit},by:${pusher}` }, log)
+    runPipeline({
+      repoUrl: cloneUrl,
+      domain: config.domain,
+      env: config.env,
+      meta: `commit:${commit},by:${pusher}`,
+      ens: {
+        mode: config.domainMode || "custom",
+        fullName: config.domain,
+      },
+    }, log)
       .then((r) => {
         log(`✅ CID: ${r.cid}`);
         store.addDeployRecord(owner, repo, pushedBranch, { cid: r.cid, commit, pusher, domain: config.domain, url: r.gateways.ipfs_io, elapsed: r.elapsed });

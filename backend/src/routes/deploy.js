@@ -21,7 +21,13 @@ const MAX_CONCURRENT = 3;
 // ── POST /api/deploy ──────────────────────────────────────────────────────────
 
 router.post("/", async (req, res) => {
-  const { repoUrl, domain, env = "production", meta = "" } = req.body;
+  const {
+    repoUrl,
+    domain,
+    env = "production",
+    meta = "",
+    domainMode = "custom",
+  } = req.body;
 
   // Validation
   if (!repoUrl) return res.status(400).json({ error: "repoUrl is required" });
@@ -55,9 +61,18 @@ router.post("/", async (req, res) => {
   const log = (line) => send("log", { line });
 
   try {
-    send("start", { repoUrl, domain, env, ts: new Date().toISOString() });
+    send("start", { repoUrl, domain, env, domainMode, ts: new Date().toISOString() });
 
-    const receipt = await runPipeline({ repoUrl, domain, env, meta }, log);
+    const receipt = await runPipeline({
+      repoUrl,
+      domain,
+      env,
+      meta,
+      ens: {
+        mode: domainMode === "auto" ? "auto" : "custom",
+        fullName: domain,
+      },
+    }, log);
 
     send("done", receipt);
   } catch (err) {

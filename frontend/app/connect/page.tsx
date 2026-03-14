@@ -31,7 +31,8 @@ export default function ConnectPage() {
   const [loadingBranches, setLoadingBranches] = useState(false);
 
   const [branch, setBranch] = useState("main");
-  const [domain, setDomain] = useState("");
+  const [domainMode, setDomainMode] = useState<"auto" | "custom">("auto");
+  const [customEnsName, setCustomEnsName] = useState("");
   const [env, setEnv] = useState<"production" | "preview">("production");
 
   const [step, setStep] = useState<Step>("repos");
@@ -102,7 +103,8 @@ export default function ConnectPage() {
 
   async function handleConnect(e: React.FormEvent) {
     e.preventDefault();
-    if (!selectedRepo || !domain.trim()) return;
+    if (!selectedRepo) return;
+    if (domainMode === "custom" && !customEnsName.trim()) return;
 
     setConnecting(true);
     setConnectError(null);
@@ -110,7 +112,8 @@ export default function ConnectPage() {
       const res = await connectRepo({
         repoFullName: selectedRepo.fullName,
         branch,
-        domain: domain.trim(),
+        domainMode,
+        customEnsName: domainMode === "custom" ? customEnsName.trim() : undefined,
         env,
       });
       setConnectResult(res.message);
@@ -270,18 +273,50 @@ export default function ConnectPage() {
                     )}
                   </div>
 
-                  {/* Domain */}
+                  {/* ENS mode */}
                   <div className="space-y-2">
-                    <label className="text-xs font-bold tracking-widest uppercase text-tg-muted">ENS Domain</label>
-                    <input
-                      type="text"
-                      placeholder="myapp.eth"
-                      value={domain}
-                      onChange={(e) => setDomain(e.target.value)}
-                      required
-                      className="w-full bg-tg-black border border-white/10 rounded-2xl px-4 py-3 text-sm text-white placeholder-tg-muted focus:outline-none focus:border-tg-lavender transition-colors font-mono"
-                    />
+                    <label className="text-xs font-bold tracking-widest uppercase text-tg-muted">Domain Mode</label>
+                    <div className="flex space-x-2">
+                      {([
+                        { value: "auto", label: "Auto subdomain" },
+                        { value: "custom", label: "Custom ENS" },
+                      ] as const).map((m) => (
+                        <button
+                          key={m.value}
+                          type="button"
+                          onClick={() => setDomainMode(m.value)}
+                          className={`flex-1 py-3 rounded-2xl text-xs font-bold tracking-widest uppercase border transition-colors ${domainMode === m.value
+                              ? "bg-tg-lime/10 border-tg-lime/30 text-tg-lime"
+                              : "bg-transparent border-white/10 text-tg-muted hover:border-white/20"
+                            }`}
+                        >
+                          {m.label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
+
+                  {/* Custom ENS domain */}
+                  {domainMode === "custom" && (
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold tracking-widest uppercase text-tg-muted">ENS Domain</label>
+                      <input
+                        type="text"
+                        placeholder="myapp.eth"
+                        value={customEnsName}
+                        onChange={(e) => setCustomEnsName(e.target.value)}
+                        required
+                        className="w-full bg-tg-black border border-white/10 rounded-2xl px-4 py-3 text-sm text-white placeholder-tg-muted focus:outline-none focus:border-tg-lavender transition-colors font-mono"
+                      />
+                      <p className="text-xs text-tg-muted">Each deploy will require a wallet transaction to update contenthash.</p>
+                    </div>
+                  )}
+
+                  {domainMode === "auto" && (
+                    <div className="px-4 py-3 rounded-2xl bg-tg-black border border-white/10 text-xs text-tg-muted">
+                      A random subdomain under <span className="font-mono text-white">d3ploy.eth</span> will be assigned and updated automatically after every deploy.
+                    </div>
+                  )}
 
                   {/* Environment */}
                   <div className="space-y-2">
@@ -347,7 +382,14 @@ export default function ConnectPage() {
                     </button>
                   </Link>
                   <button
-                    onClick={() => { setStep("repos"); setSelectedRepo(null); setConnectResult(null); setBranch("main"); setDomain(""); }}
+                    onClick={() => {
+                      setStep("repos");
+                      setSelectedRepo(null);
+                      setConnectResult(null);
+                      setBranch("main");
+                      setDomainMode("auto");
+                      setCustomEnsName("");
+                    }}
                     className="border border-tg-black/20 text-tg-black px-6 py-3 rounded-full font-bold text-xs tracking-wide hover:bg-tg-black/10 transition-all"
                   >
                     CONNECT ANOTHER
@@ -375,6 +417,8 @@ export default function ConnectPage() {
                           <span className="text-xs text-tg-muted">branch: <span className="text-white font-mono">{r.branch}</span></span>
                           <span className="w-1 h-1 bg-white/20 rounded-full" />
                           <span className="text-xs text-tg-muted font-mono">{r.domain}</span>
+                          <span className="w-1 h-1 bg-white/20 rounded-full" />
+                          <span className="text-[10px] uppercase tracking-widest text-tg-muted">{r.domainMode}</span>
                         </div>
                         <div className="flex items-center space-x-2 mt-1">
                           <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold tracking-widest uppercase border ${
