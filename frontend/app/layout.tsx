@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, Plus_Jakarta_Sans, Geist_Mono } from "next/font/google";
+import { Inter, Plus_Jakarta_Sans, Geist_Mono, Bitcount_Prop_Double_Ink } from "next/font/google";
 import "./globals.css";
 
 const inter = Inter({
@@ -19,6 +19,13 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const bitcountPropDoubleInk = Bitcount_Prop_Double_Ink({
+  variable: "--font-bitcount",
+  subsets: ["latin"],
+  weight: ["400"],
+  display: "swap",
+});
+
 export const metadata: Metadata = {
   title: "D3PLOY - Web3 Vercel",
   description:
@@ -33,7 +40,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${inter.variable} ${plusJakarta.variable} ${geistMono.variable} antialiased bg-tg-black text-white font-sans`}
+        className={`${inter.variable} ${plusJakarta.variable} ${geistMono.variable} ${bitcountPropDoubleInk.variable} antialiased bg-tg-black text-white font-sans`}
       >
         {children}
       </body>

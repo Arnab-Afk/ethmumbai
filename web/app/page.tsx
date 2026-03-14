@@ -8,25 +8,8 @@ export default function Home() {
   return (
     <div className="bg-[#F8F9FA] text-black min-h-screen overflow-x-hidden">
       <nav className="flex items-center justify-between px-4 md:px-8 py-6 relative z-50">
-        <div className="flex items-center space-x-2">
-          <svg
-            className="text-black"
-            fill="none"
-            height="32"
-            viewBox="0 0 32 32"
-            width="32"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              d="M16 4L4 10V22L16 28L28 22V10L16 4Z"
-              stroke="currentColor"
-              strokeLinejoin="round"
-              strokeWidth="2.5"
-            />
-            <path d="M16 4V28" stroke="currentColor" strokeWidth="2.5" />
-            <path d="M4 10L16 16L28 10" stroke="currentColor" strokeWidth="2.5" />
-          </svg>
-          <span className="text-2xl tracking-tight" style={{ fontFamily: 'var(--font-bitcount)' }}>D3PLOY</span>
+        <div className="flex items-center">
+          <span className="text-4xl tracking-tight" style={{ fontFamily: 'var(--font-bitcount)' }}>D3PLOY</span>
         </div>
         <div className="hidden md:flex items-center space-x-8 lg:space-x-10 text-xs lg:text-sm font-semibold uppercase tracking-wider">
           <a className="hover:text-[#0081BC] transition-colors" href="#why">

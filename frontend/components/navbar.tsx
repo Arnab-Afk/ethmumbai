@@ -30,22 +30,7 @@ export default function Navbar() {
     <nav className="flex justify-between items-center mb-12">
       {/* Logo */}
       <Link href="/" className="flex items-center space-x-2">
-        <div className="w-8 h-8 bg-tg-lavender rounded-full flex items-center justify-center">
-          <svg
-            className="w-5 h-5 text-tg-black"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2.5}
-              d="M13 10V3L4 14h7v7l9-11h-7z"
-            />
-          </svg>
-        </div>
-        <span className="font-display text-xl font-bold tracking-tight text-white">
+        <span style={{ fontFamily: 'var(--font-bitcount)' }} className="text-4xl tracking-tight text-white">
           D3PLOY
         </span>
       </Link>

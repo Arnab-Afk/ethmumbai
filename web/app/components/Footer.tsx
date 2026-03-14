@@ -7,12 +7,7 @@ export default function Footer() {
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-10 pb-16 border-b border-white/10">
           <div>
             <div className="flex items-center gap-3 mb-4">
-              <svg fill="none" height="36" viewBox="0 0 32 32" width="36" xmlns="http://www.w3.org/2000/svg">
-                <path d="M16 4L4 10V22L16 28L28 22V10L16 4Z" stroke="white" strokeLinejoin="round" strokeWidth="2.5" />
-                <path d="M16 4V28" stroke="white" strokeWidth="2.5" />
-                <path d="M4 10L16 16L28 10" stroke="white" strokeWidth="2.5" />
-              </svg>
-              <span className="text-2xl font-bold tracking-tight">D3PLOY</span>
+              <span style={{ fontFamily: 'var(--font-bitcount)' }} className="text-2xl tracking-tight">D3PLOY</span>
             </div>
             <p className="text-white/40 text-sm max-w-xs leading-relaxed">
               Web3 Vercel — decentralized hosting where your site lives on IPFS, resolves through ENS, and can&apos;t be governed by anyone.
