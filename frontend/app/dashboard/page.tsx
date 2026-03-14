@@ -53,10 +53,6 @@ function DashboardContent() {
       saveToken(token);
       // Clean the URL to remove the token
       router.replace("/dashboard");
-      return;
-    }
-    if (!getToken()) {
-      router.replace("/login");
     }
   }, [searchParams, router]);
 
@@ -104,10 +100,9 @@ function DashboardContent() {
       if (err instanceof Error) {
         if (err.message.includes("401") || err.message.includes("Authentication")) {
           clearToken();
-          router.replace("/login");
-          return;
+        } else {
+          setError(err.message);
         }
-        setError(err.message);
       }
     } finally {
       setLoading(false);

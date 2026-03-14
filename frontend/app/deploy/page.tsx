@@ -24,11 +24,7 @@ export default function DeployPage() {
   const logRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<(() => void) | null>(null);
 
-  useEffect(() => {
-    if (!getToken()) {
-      router.replace("/login");
-    }
-  }, [router]);
+  // auth guard removed – all pages are open
 
   // Auto-scroll log
   useEffect(() => {

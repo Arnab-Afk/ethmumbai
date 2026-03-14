@@ -28,11 +28,7 @@ export default function ProjectPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!getToken()) {
-      router.replace("/login");
-    }
-  }, [router]);
+  // auth guard removed – all pages are open
 
   useEffect(() => {
     if (!domain) return;
@@ -50,8 +46,6 @@ export default function ProjectPage() {
           const err = siteRes.reason as Error;
           if (err.message.includes("401") || err.message.includes("Authentication")) {
             clearToken();
-            router.replace("/login");
-            return;
           }
           setError(err.message);
         }
