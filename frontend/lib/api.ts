@@ -16,6 +16,30 @@ export function clearToken() {
   localStorage.removeItem("d3ploy_token");
 }
 
+export function getTokenExpiryMs(token?: string | null): number | null {
+  const raw = token ?? getToken();
+  if (!raw) return null;
+
+  const parts = raw.split(".");
+  if (parts.length !== 3) return null;
+
+  try {
+    const payloadB64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    const payloadJson = atob(payloadB64);
+    const payload = JSON.parse(payloadJson) as { exp?: number };
+    if (!payload.exp) return null;
+    return payload.exp * 1000;
+  } catch {
+    return null;
+  }
+}
+
+export function isTokenExpired(token?: string | null): boolean {
+  const expiry = getTokenExpiryMs(token);
+  if (!expiry) return false;
+  return Date.now() >= expiry;
+}
+
 // ── Core fetch wrapper ────────────────────────────────────────────────────────
 
 async function apiFetch<T = unknown>(
@@ -61,6 +85,22 @@ export async function logout() {
 
 export function getLoginUrl(): string {
   return `${API_BASE}/api/auth/github`;
+}
+
+export function getGoogleLoginUrl(): string {
+  return `${API_BASE}/api/auth/google`;
+}
+
+export interface AuthProvider {
+  id: string;
+  name: string;
+  url: string;
+  available: boolean;
+  note: string;
+}
+
+export async function getAuthProviders(): Promise<{ providers: AuthProvider[] }> {
+  return apiFetch("/api/auth/providers");
 }
 
 // ── Sites ─────────────────────────────────────────────────────────────────────

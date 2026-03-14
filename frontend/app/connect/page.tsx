@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -55,16 +55,7 @@ export default function ConnectPage() {
 
   const [searchQuery, setSearchQuery] = useState("");
 
-  useEffect(() => {
-    if (!getToken()) {
-      router.replace("/login");
-      return;
-    }
-    loadRepos();
-    loadConnected();
-  }, [router]);
-
-  async function loadRepos() {
+  const loadRepos = useCallback(async () => {
     try {
       setLoadingRepos(true);
       setReposError(null);
@@ -85,16 +76,25 @@ export default function ConnectPage() {
     } finally {
       setLoadingRepos(false);
     }
-  }
+  }, [router]);
 
-  async function loadConnected() {
+  const loadConnected = useCallback(async () => {
     try {
       const res = await getConnectedRepos();
       setConnected(res.repos);
     } catch {
       // non-fatal
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    if (!getToken()) {
+      router.replace("/login");
+      return;
+    }
+    loadRepos();
+    loadConnected();
+  }, [router, loadRepos, loadConnected]);
 
   async function handleSelectRepo(repo: Repo) {
     setSelectedRepo(repo);

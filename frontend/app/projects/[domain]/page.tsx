@@ -28,10 +28,15 @@ export default function ProjectPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // auth guard removed – all pages are open
+  useEffect(() => {
+    if (!getToken()) {
+      router.replace("/login");
+    }
+  }, [router]);
 
   useEffect(() => {
     if (!domain) return;
+    if (!getToken()) return;
 
     async function load() {
       try {

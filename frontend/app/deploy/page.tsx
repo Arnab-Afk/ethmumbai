@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { getToken, clearToken, deployStream, getConnectedRepos, ConnectedRepo, DeployReceipt } from "@/lib/api";
+import { getToken, clearToken, deployStream, getConnectedRepos, ConnectedRepo, DeployReceipt, getRepos, Repo } from "@/lib/api";
 import Navbar from "@/components/navbar";
 
 type DeployState = "idle" | "deploying" | "done" | "error";
@@ -12,6 +12,10 @@ export default function DeployPage() {
   const router = useRouter();
 
   const [repoUrl, setRepoUrl] = useState("");
+  const [selectedRepo, setSelectedRepo] = useState("");
+  const [repos, setRepos] = useState<Repo[]>([]);
+  const [loadingRepos, setLoadingRepos] = useState(true);
+  const [reposError, setReposError] = useState<string | null>(null);
   const [domain, setDomain] = useState("");
   const [domainMode, setDomainMode] = useState<"auto" | "custom">("auto");
   const [ipnsKey, setIpnsKey] = useState("");
@@ -38,6 +42,29 @@ export default function DeployPage() {
     getConnectedRepos()
       .then((res) => setConnectedRepos(res.repos))
       .catch(() => setConnectedRepos([]));
+  }, [router]);
+
+  useEffect(() => {
+    async function loadRepos() {
+      try {
+        setLoadingRepos(true);
+        setReposError(null);
+        const res = await getRepos();
+        setRepos(res.repos);
+      } catch (err: unknown) {
+        const e = err as Error;
+        if (e.message.includes("401") || e.message.includes("Authentication")) {
+          clearToken();
+          router.replace("/login");
+          return;
+        }
+        setReposError(e.message);
+      } finally {
+        setLoadingRepos(false);
+      }
+    }
+
+    if (getToken()) loadRepos();
   }, [router]);
 
   // Auto-scroll log
@@ -162,6 +189,35 @@ export default function DeployPage() {
               </div>
 
               {/* Repo URL */}
+              <div className="space-y-2">
+                <label className="text-xs font-bold tracking-widest uppercase text-tg-muted">
+                  Select GitHub Repo
+                </label>
+                <select
+                  value={selectedRepo}
+                  onChange={(e) => {
+                    const next = e.target.value;
+                    setSelectedRepo(next);
+                    const picked = repos.find((r) => r.fullName === next);
+                    if (picked?.htmlUrl) setRepoUrl(picked.htmlUrl);
+                  }}
+                  disabled={isDeploying || loadingRepos || repos.length === 0}
+                  className="w-full bg-tg-black border border-white/10 rounded-2xl px-4 py-3 text-sm text-white focus:outline-none focus:border-tg-lavender transition-colors disabled:opacity-50"
+                >
+                  <option value="">{loadingRepos ? "Loading repositories..." : "Select a repository (optional)"}</option>
+                  {repos.map((r) => (
+                    <option key={r.fullName} value={r.fullName}>
+                      {r.fullName}
+                    </option>
+                  ))}
+                </select>
+                {reposError && (
+                  <p className="text-xs text-red-400">
+                    Could not load repos: {reposError}
+                  </p>
+                )}
+              </div>
+
               <div className="space-y-2">
                 <label className="text-xs font-bold tracking-widest uppercase text-tg-muted">
                   Repository URL
