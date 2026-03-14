@@ -37,12 +37,46 @@ async function testAuth() {
 
 /**
  * Upload a local directory to Pinata IPFS.
+ * Tries the v3 Files API first, falls back to legacy v2 pinning API.
  * Returns the CIDv1 string.
  */
 async function uploadDir(dirPath, name, log = console.log) {
   const files = collectFiles(dirPath);
   log(`  📁 Uploading ${files.length} files as "${name}"`);
 
+  // ── Pinata v3 Files API (current) ────────────────────
+  if (PINATA_JWT) {
+    try {
+      const form = new FormData();
+      // v3 wants a single "file" entry — for directories we create a zip in memory
+      // but the easiest supported approach is uploading files individually under
+      // the same group. For a flat bundle Pinata v3 accepts multiple files.
+      for (const { full, relative } of files) {
+        form.append("file", fs.createReadStream(full), { filename: relative });
+      }
+      form.append("name", name);
+      form.append("group_id", ""); // optional group
+
+      const res = await axios.post(
+        "https://uploads.pinata.cloud/v3/files",
+        form,
+        {
+          maxBodyLength: Infinity,
+          maxContentLength: Infinity,
+          headers: {
+            Authorization: `Bearer ${PINATA_JWT}`,
+            ...form.getHeaders(),
+          },
+        }
+      );
+      return res.data.data.cid;
+    } catch (err) {
+      const status = err.response?.status;
+      log(`  ⚠️  Pinata v3 failed (${status ?? err.message}), falling back to v2...`);
+    }
+  }
+
+  // ── Pinata v2 legacy API (fallback) ──────────────────
   const form = new FormData();
   for (const { full, relative } of files) {
     form.append("file", fs.createReadStream(full), { filepath: `tmp/${relative}` });

@@ -25,6 +25,30 @@ const { upsertAutoSubnameContenthash } = require("./ens");
 
 const IPFS_GATEWAY = process.env.IPFS_GATEWAY || "https://ipfs.io";
 
+/**
+ * Parse a raw GitHub URL that may include /tree/<branch>/<subpath>.
+ * Returns { cloneUrl, branch, subDir }.
+ *
+ * Examples:
+ *   https://github.com/user/repo/tree/main/frontend  → clone repo, branch=main, subDir=frontend
+ *   https://github.com/user/repo                     → clone repo, branch=null, subDir=""
+ *   https://github.com/user/repo.git                 → clone repo, branch=null, subDir=""
+ */
+function parseRepoUrl(rawUrl) {
+  const treeMatch = rawUrl.match(
+    /^(https?:\/\/github\.com\/[^/]+\/[^/]+?)(?:\.git)?\/tree\/([^/]+)\/?(.*)$/
+  );
+  if (treeMatch) {
+    return {
+      cloneUrl: treeMatch[1] + ".git",
+      branch:   treeMatch[2],
+      subDir:   treeMatch[3] ? treeMatch[3].replace(/\/$/, "") : "",
+    };
+  }
+  // Plain repo URL (with or without .git)
+  return { cloneUrl: rawUrl, branch: null, subDir: "" };
+}
+
 async function runPipeline({ repoUrl, domain, env = "production", meta = "", ens = null }, log = console.log) {
   const startTime = Date.now();
   log("═══════════════════════════════════════════════════");
@@ -35,22 +59,31 @@ async function runPipeline({ repoUrl, domain, env = "production", meta = "", ens
   log(`  Env    : ${env}`);
 
   // ── 1. Clone ──────────────────────────────────────────
+  const { cloneUrl, branch, subDir } = parseRepoUrl(repoUrl);
+
   const tmpDir = await fse.mkdtemp(path.join(os.tmpdir(), "everdeploy-"));
-  log(`\n📥 Cloning into ${tmpDir}...`);
+  log(`\n📥 Cloning ${cloneUrl}${branch ? ` (branch: ${branch})` : ""}${subDir ? ` (subdir: ${subDir})` : ""}...`);
+
+  const cloneArgs = ["--depth", "1"];
+  if (branch) cloneArgs.push("--branch", branch);
 
   const git = simpleGit();
-  await git.clone(repoUrl, tmpDir, ["--depth", "1"]);
+  await git.clone(cloneUrl, tmpDir, cloneArgs);
   log("  ✅ Cloned");
 
-  try {
-    // Detect framework upfront
-    const framework = detectFramework(tmpDir).catch?.() || (() => {
-      try { return require("./builder").detectFramework(tmpDir); } catch { return "plain"; }
-    })();
+  // If the user pointed at a subdirectory, work inside it
+  const buildDir = subDir ? path.join(tmpDir, subDir) : tmpDir;
+  if (subDir) {
+    if (!(await fse.pathExists(buildDir))) {
+      throw new Error(`Subdirectory '${subDir}' not found in repository`);
+    }
+    log(`  📁 Using subdirectory: ${subDir}`);
+  }
 
+  try {
     // ── 2. First build (no assetPrefix) ───────────────
     log("\n🔨 Build pass 1 (get base CID)...");
-    const { outDir } = await buildRepo(tmpDir, "", log);
+    const { outDir } = await buildRepo(buildDir, "", log);
 
     // ── 3. First IPFS upload ───────────────────────────
     log("\n📤 IPFS upload pass 1...");
@@ -60,10 +93,10 @@ async function runPipeline({ repoUrl, domain, env = "production", meta = "", ens
     let finalCid = baseCid;
 
     // ── 4. Second pass for Next.js (inject assetPrefix) ─
-    const fw = require("./builder").detectFramework(tmpDir);
+    const fw = require("./builder").detectFramework(buildDir);
     if (fw === "nextjs") {
       log("\n🔨 Build pass 2 (inject assetPrefix)...");
-      const { outDir: outDir2 } = await buildRepo(tmpDir, baseCid, log);
+      const { outDir: outDir2 } = await buildRepo(buildDir, baseCid, log);
 
       log("\n📤 IPFS upload pass 2...");
       finalCid = await uploadDir(outDir2, `${domain}:pass2`, log);

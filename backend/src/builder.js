@@ -74,7 +74,16 @@ module.exports = nextConfig;
     const fp = path.join(repoDir, f);
     if (fs.existsSync(fp)) fs.unlinkSync(fp);
   }
-  fs.writeFileSync(path.join(repoDir, "next.config.js"), content);
+
+  // Embed the absolute repo path so Turbopack doesn't scan parent dirs
+  // for a workspace root (avoids the "Unexpected response from worker" crash)
+  const escapedDir = repoDir.replace(/\\/g, "/");
+  const rootedContent = content.replace(
+    "module.exports = nextConfig;",
+    `const path = require("path");\nnextConfig.turbopack = { root: path.resolve("${escapedDir}") };\nmodule.exports = nextConfig;`
+  );
+
+  fs.writeFileSync(path.join(repoDir, "next.config.js"), rootedContent);
 }
 
 /**
