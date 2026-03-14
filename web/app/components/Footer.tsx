@@ -15,9 +15,6 @@ export default function Footer() {
           </div>
 
           <div className="flex items-center gap-3">
-            <code className="bg-white/5 border border-white/10 text-white/70 px-5 py-3 rounded-xl font-mono text-sm">
-              npx web3deploy init
-            </code>
             <a
               href="#"
               className="bg-[#EC4899] text-white px-6 py-3 rounded-xl font-bold text-sm hover:brightness-110 transition-all whitespace-nowrap"
@@ -32,7 +29,7 @@ export default function Footer() {
           <div>
             <div className="text-white/30 text-xs font-bold uppercase tracking-widest mb-5">Platform</div>
             <ul className="space-y-3">
-              {['CLI Tool', 'GitHub Actions', 'ENS Dashboard', 'Subname Registry'].map((item) => (
+              {['GitHub Actions', 'ENS Dashboard', 'Subname Registry'].map((item) => (
                 <li key={item}>
                   <a href="#" className="text-white/60 text-sm hover:text-white transition-colors">{item}</a>
                 </li>
@@ -43,7 +40,7 @@ export default function Footer() {
           <div>
             <div className="text-white/30 text-xs font-bold uppercase tracking-widest mb-5">Developers</div>
             <ul className="space-y-3">
-              {['Documentation', 'CLI Reference', 'Config Schema', 'ENS Text Records'].map((item) => (
+              {['Documentation', 'Config Schema', 'ENS Text Records'].map((item) => (
                 <li key={item}>
                   <a href="#" className="text-white/60 text-sm hover:text-white transition-colors">{item}</a>
                 </li>

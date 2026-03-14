@@ -52,7 +52,7 @@ export default function HowItWorks() {
           </div>
           <div className="flex items-baseline gap-4 md:gap-8 leading-none">
             <span className="font-bold tracking-tighter" style={{ fontSize: 'clamp(36px, 6vw, 72px)', color: '#EC4899' }}>1</span>
-            <span className="font-bold tracking-tighter" style={{ fontSize: 'clamp(36px, 6vw, 72px)', color: '#000' }}>command to deploy</span>
+            <span className="font-bold tracking-tighter" style={{ fontSize: 'clamp(36px, 6vw, 72px)', color: '#000' }}>dashboard to manage</span>
           </div>
         </div>
 

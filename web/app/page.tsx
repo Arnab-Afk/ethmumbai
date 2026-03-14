@@ -255,9 +255,12 @@ export default function Home() {
             resolve through ENS, and cannot be governed by any single entity.
           </p>
           <div className="mt-12 flex items-center justify-center gap-4">
-            <code className="bg-white px-6 py-4 rounded-xl font-mono text-[#0081BC] text-lg font-semibold shadow-sm border border-gray-100">
-              npx web3deploy init
-            </code>
+            <a
+              href="/connect"
+              className="bg-[#0081BC] text-white px-8 py-4 rounded-xl font-bold text-lg hover:brightness-110 transition-all"
+            >
+              Start Deploying
+            </a>
           </div>
         </div>
 
