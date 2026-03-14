@@ -1,0 +1,10 @@
+{
+  "DeployRegistry": "0xeCDcCf060EEf50Fc37D45F7C1ffF39C041BD8F40",
+  "IPNSRegistry": "0xFAf914B77F07F2755abf6DB88BA7104E591fBBb6",
+  "SubnameRegistry": "0x7f4e71edc1d8914c2EFa72783BD5d70C5B7AD699",
+  "AccessController": "0x790E50cDF2FC85485189A003879d94F4839306C6",
+  "wallet": "0x0B991EC39517acb9f6f0C2954c5AA1426a94D504",
+  "nonce": 8,
+  "balance": "0.093812526509719066 ETH",
+  "network": "ethSepolia (11155111)"
+}
