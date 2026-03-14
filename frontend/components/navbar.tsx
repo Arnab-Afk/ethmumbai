@@ -46,7 +46,7 @@ export default function Navbar() {
           </svg>
         </div>
         <span className="font-display text-xl font-bold tracking-tight text-white">
-          EVERDEPLOY
+          D3PLOY
         </span>
       </Link>
 

@@ -1,4 +1,4 @@
-# EverDeploy Web3 Vercel — Decentralized Hosting Platform Spec
+# D3PLOY — Web3 Vercel
 
 > A censorship-resistant deployment platform where sites live on IPFS, resolve through ENS, and cannot be governed by any single entity.
 
@@ -42,9 +42,9 @@ Traditional hosting also means:
 
 ### The Solution
 
-**Web3 Vercel** replaces the entire centralized hosting stack with decentralized primitives:
+**D3PLOY** replaces the entire centralized hosting stack with decentralized primitives:
 
-|Traditional|Web3 Vercel|
+|Traditional|D3PLOY|
 |---|---|
 |DNS (`A` record → server IP)|ENS `contenthash` → IPFS CID|
 |File storage (S3, CDN)|IPFS / Filecoin (content-addressed)|
@@ -301,7 +301,7 @@ export default defineConfig({
 
 ## 5. ENS as Config Layer
 
-This is the feature that makes Web3 Vercel genuinely novel. Rather than storing deploy config in a `.env` file, a Vercel dashboard, or a centralized database, **all configuration lives on-chain as ENS text records**.
+This is the feature that makes D3PLOY genuinely novel. Rather than storing deploy config in a `.env` file, a Vercel dashboard, or a centralized database, **all configuration lives on-chain as ENS text records**.
 
 This means:
 
@@ -312,7 +312,7 @@ This means:
 
 ### Standard Text Record Schema
 
-Every project deployed via Web3 Vercel sets these ENS text records:
+Every project deployed via D3PLOY sets these ENS text records:
 
 ```
 deploy.cid          →  bafybeig3...           (current IPFS CID)
@@ -378,7 +378,7 @@ This is fundamentally different from location-addressed storage (S3, CDN) where 
 
 ### Pinning Strategy — 3-Provider Redundancy
 
-Web3 Vercel pins every deploy to three independent providers simultaneously. If any one provider goes down, the other two still serve the content.
+D3PLOY pins every deploy to three independent providers simultaneously. If any one provider goes down, the other two still serve the content.
 
 ```
 Deploy Upload
@@ -399,7 +399,7 @@ ipfs://bafybeig3...    ←  changes every deploy
 ipns://k51qzi5uqu5...  ←  stable, always points to latest
 ```
 
-Web3 Vercel uses `w3name` (as in the reference implementation) to update the IPNS record on each deploy. The ENS `contenthash` record points at the IPNS address, so users always resolve the latest version without a new ENS transaction.
+D3PLOY uses `w3name` (as in the reference implementation) to update the IPNS record on each deploy. The ENS `contenthash` record points at the IPNS address, so users always resolve the latest version without a new ENS transaction.
 
 **Why both ENS and IPNS?**
 
@@ -590,7 +590,7 @@ Several major DeFi exploits have happened via compromised frontends — maliciou
 
 ## 9. Access Control & Token Gating
 
-Web3 Vercel supports storing access policy in ENS text records, which the frontend reads at runtime to enforce access control.
+D3PLOY supports storing access policy in ENS text records, which the frontend reads at runtime to enforce access control.
 
 ### Access Modes
 
@@ -692,7 +692,7 @@ This means users and developers can reference contract addresses by human-readab
 
 ## 11. Platform Dashboard
 
-The platform dashboard is itself deployed via Web3 Vercel. It connects to your wallet, reads your ENS domains, and provides a GUI over the CLI functionality.
+The platform dashboard is itself deployed via D3PLOY. It connects to your wallet, reads your ENS domains, and provides a GUI over the CLI functionality.
 
 ### Dashboard Features
 
@@ -706,7 +706,7 @@ The platform dashboard is itself deployed via Web3 Vercel. It connects to your w
 ### Dashboard Tech Stack
 
 ```
-Frontend:   React + Vite + Tailwind (deployed via Web3 Vercel itself)
+Frontend:   React + Vite + Tailwind (deployed via D3PLOY itself)
 Wallet:     wagmi + viem + ConnectKit
 ENS reads:  @ensdomains/ensjs
 ENS writes: wagmi writeContract hooks
@@ -718,15 +718,15 @@ Registry:   ethers.js → custom deploy registry contract
 
 ## 12. ENS Subname Registry
 
-Web3 Vercel operates a public ENS subname registry so developers without their own ENS domain can deploy immediately.
+D3PLOY operates a public ENS subname registry so developers without their own ENS domain can deploy immediately.
 
-### Free Tier — `app.web3deploy.eth`
+### Free Tier — `app.d3ploy.eth`
 
-Anyone can claim a subname like `myproject.app.web3deploy.eth` for free. The platform owns `web3deploy.eth` and issues subnames via a smart contract registry.
+Anyone can claim a subname like `myproject.app.d3ploy.eth` for free. The platform owns `d3ploy.eth` and issues subnames via a smart contract registry.
 
 ```bash
 web3deploy claim myproject
-# Claims myproject.app.web3deploy.eth
+# Claims myproject.app.d3ploy.eth
 # Transfers subname ownership to your wallet
 # Updates contenthash to your first deploy
 ```
@@ -736,7 +736,7 @@ web3deploy claim myproject
 For production deployments, connect your own ENS domain:
 
 ```bash
-web3deploy connect myapp.eth
+d3ploy connect myapp.eth
 # Verifies you own myapp.eth
 # Stores web3deploy config in ENS text records
 # Optionally transfers ownership to a Gnosis Safe
@@ -745,9 +745,9 @@ web3deploy connect myapp.eth
 ### Subname Architecture
 
 ```
-web3deploy.eth              (platform root — owned by team multisig)
-  └── app.web3deploy.eth    (free tier subnames — owned by registry contract)
-        └── myproject.app.web3deploy.eth  (user subname — owned by user wallet)
+d3ploy.eth              (platform root — owned by team multisig)
+  └── app.d3ploy.eth    (free tier subnames — owned by registry contract)
+        └── myproject.app.d3ploy.eth  (user subname — owned by user wallet)
 ```
 
 Each user subname has full ownership — they control the contenthash, text records, and can transfer ownership. The platform cannot censor individual subnames.
@@ -933,8 +933,8 @@ async function logDeploy(domain: string, cid: string, env: string) {
 
 ### Phase 4 — Platform (Weeks 13-20)
 
-- [ ] Web dashboard (deployed via Web3 Vercel)
-- [ ] ENS subname registry (`app.web3deploy.eth`)
+- [ ] Web dashboard (deployed via D3PLOY)
+- [ ] ENS subname registry (`app.d3ploy.eth`)
 - [ ] Token gating support
 - [ ] DeFi text record schema standardization
 - [ ] Public registry of deployed protocols
