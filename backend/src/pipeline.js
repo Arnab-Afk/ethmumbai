@@ -75,7 +75,7 @@ async function runPipeline({ repoUrl, domain, env = "production", meta = "", ens
     let ensResult = {
       mode: ensConfig.mode || "custom",
       name: ensConfig.fullName || domain,
-      contenthash: `ipfs://${finalCid}`,
+      contenthash: ensConfig.mode === "auto" ? `ipfs://${finalCid}` : (ensConfig.ipnsKey ? `ipns://${ensConfig.ipnsKey}` : null),
       managedBy: ensConfig.mode === "auto" ? "server" : "wallet",
       status: ensConfig.mode === "auto" ? "updated" : "pending-user-transaction",
     };
@@ -99,7 +99,7 @@ async function runPipeline({ repoUrl, domain, env = "production", meta = "", ens
     await logDeploy(domain, finalCid, env, meta, log);
 
     log("\n🔗 Updating IPNS on-chain...");
-    await updateIPNS(domain, finalCid, log);
+    await updateIPNS(domain, finalCid, { ipnsKey: ensConfig.ipnsKey || null }, log);
 
     // ── 7. Gateway warmup ──────────────────────────────
     log("\n🔥 Warming gateways...");
@@ -120,6 +120,9 @@ async function runPipeline({ repoUrl, domain, env = "production", meta = "", ens
         w3s:      `https://${finalCid}.ipfs.w3s.link/`,
       },
       ens: ensResult,
+      ipns: {
+        key: ensConfig.ipnsKey || null,
+      },
       contracts: {
         DeployRegistry: process.env.REGISTRY_CONTRACT,
         IPNSRegistry:   process.env.IPNS_REGISTRY_CONTRACT,

@@ -82,16 +82,33 @@ router.post("/connect", requireAuth, async (req, res) => {
   const [owner, repo] = repoFullName.split("/");
   if (!owner || !repo) return res.status(400).json({ error: "Invalid repoFullName (use owner/repo)" });
 
+  const existingConnection = store.getConnectedRepo(owner, repo, branch);
+
   const mode = domainMode === "custom" ? "custom" : "auto";
   const resolvedDomain = mode === "custom"
     ? normalizeEnsName(customEnsName || domain)
-    : normalizeEnsName(domain || buildAutoAssignedEnsName(DEFAULT_PARENT));
+    : normalizeEnsName(domain || existingConnection?.domain || buildAutoAssignedEnsName(DEFAULT_PARENT));
 
   if (!resolvedDomain) {
     return res.status(400).json({ error: "domain could not be resolved" });
   }
   if (!isValidEnsName(resolvedDomain)) {
     return res.status(400).json({ error: `Invalid ENS domain: ${resolvedDomain}` });
+  }
+
+  let verifiedCustomDomain = null;
+  if (mode === "custom") {
+    verifiedCustomDomain = store.getVerifiedCustomDomain(resolvedDomain);
+    if (!verifiedCustomDomain || verifiedCustomDomain.verifiedBy !== req.user.sub) {
+      return res.status(403).json({
+        error: `Custom ENS domain ${resolvedDomain} is not verified for this account. Complete /api/domains/custom/init and /api/domains/custom/verify first.`,
+      });
+    }
+    if (!verifiedCustomDomain.ensToIpnsConfigured) {
+      return res.status(403).json({
+        error: `Custom ENS domain ${resolvedDomain} is verified, but ENS->IPNS is not confirmed yet. Complete /api/domains/custom/confirm-link after your wallet transaction.`,
+      });
+    }
   }
 
   try {
@@ -112,6 +129,7 @@ router.post("/connect", requireAuth, async (req, res) => {
       domainMode: mode,
       customEnsName: mode === "custom" ? resolvedDomain : null,
       parentEnsName: mode === "auto" ? DEFAULT_PARENT : null,
+      ipnsKey: mode === "custom" ? verifiedCustomDomain.ipnsKey : null,
       env,
       webhookSecret: secret, webhookId,
       connectedBy: req.user.login,
@@ -220,6 +238,7 @@ router.post(
       ens: {
         mode: config.domainMode || "custom",
         fullName: config.domain,
+        ipnsKey: config.ipnsKey || null,
       },
     }, log)
       .then((r) => {

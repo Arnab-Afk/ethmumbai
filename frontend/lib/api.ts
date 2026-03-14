@@ -216,6 +216,7 @@ export interface ConnectedRepo {
   domainMode: "auto" | "custom";
   customEnsName?: string | null;
   parentEnsName?: string | null;
+  ipnsKey?: string | null;
   env: string;
   webhookId: number | null;
   connectedBy: string;
@@ -242,6 +243,59 @@ export async function connectRepo(data: {
   env: string;
 }): Promise<{ ok: boolean; key: string; webhookId: number | null; message: string; domain: string; domainMode: "auto" | "custom" }> {
   return apiFetch("/api/github/connect", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+// ── Custom ENS domains ───────────────────────────────────────────────────────
+
+export interface CustomDomainInitResponse {
+  ensName: string;
+  walletAddress: string;
+  ipnsKey: string;
+  nonce: string;
+  message: string;
+  note: string;
+}
+
+export interface CustomDomainVerifyResponse {
+  ok: boolean;
+  ensName: string;
+  walletAddress: string;
+  ipnsKey: string;
+  ensToIpnsStatus: string;
+  ensToIpnsConfigured: boolean;
+  ensToIpnsTxHash?: string;
+  note: string;
+}
+
+export async function initCustomDomainVerification(data: {
+  ensName: string;
+  walletAddress: string;
+}): Promise<CustomDomainInitResponse> {
+  return apiFetch("/api/domains/custom/init", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function verifyCustomDomainSignature(data: {
+  ensName: string;
+  walletAddress: string;
+  signature: string;
+}): Promise<CustomDomainVerifyResponse> {
+  return apiFetch("/api/domains/custom/verify", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function confirmCustomDomainEnsLink(data: {
+  ensName: string;
+  txHash: string;
+}): Promise<{ ok: boolean; ensName: string; ensToIpnsStatus: string; ensToIpnsConfigured: boolean; ensToIpnsTxHash: string }> {
+  return apiFetch("/api/domains/custom/confirm-link", {
     method: "POST",
     body: JSON.stringify(data),
   });

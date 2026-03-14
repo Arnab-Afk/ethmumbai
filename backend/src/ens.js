@@ -6,9 +6,11 @@
  */
 
 const crypto = require("crypto");
+const { ethers } = require("ethers");
 
-const DEFAULT_PARENT = process.env.D3PLOY_PARENT_ENS || "d3ploy.eth";
+const DEFAULT_PARENT = process.env.D3PLOY_PARENT_ENS || "pushx.eth";
 const DEFAULT_NAMESPACE_MODE = process.env.NAMESPACE_MODE || "mainnet";
+const ENS_REGISTRY = process.env.ENS_REGISTRY_ADDRESS || "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e";
 
 const ADJECTIVES = [
     "amber", "azure", "bold", "brisk", "calm", "crisp", "daring", "eager", "fierce", "gentle",
@@ -49,6 +51,37 @@ function createAutoLabel() {
 
 function buildAutoAssignedEnsName(parentName = DEFAULT_PARENT) {
     return `${createAutoLabel()}.${normalizeEnsName(parentName)}`;
+}
+
+function getEnsProvider() {
+    const rpcUrl = process.env.ENS_RPC_URL || process.env.SEPOLIA_RPC_URL;
+    if (!rpcUrl) {
+        throw new Error("ENS_RPC_URL or SEPOLIA_RPC_URL is required for custom domain ownership verification");
+    }
+    return new ethers.JsonRpcProvider(rpcUrl);
+}
+
+async function resolveEnsOwner(name) {
+    const normalized = normalizeEnsName(name);
+    if (!isValidEnsName(normalized)) {
+        throw new Error(`Invalid ENS name: ${name}`);
+    }
+
+    const provider = getEnsProvider();
+    const registry = new ethers.Contract(
+        ENS_REGISTRY,
+        ["function owner(bytes32 node) external view returns (address)"],
+        provider
+    );
+    const node = ethers.namehash(normalized);
+    const owner = await registry.owner(node);
+    return owner;
+}
+
+async function verifyCustomEnsOwnership(name, walletAddress) {
+    const owner = await resolveEnsOwner(name);
+    if (!owner || owner === ethers.ZeroAddress) return false;
+    return owner.toLowerCase() === walletAddress.toLowerCase();
 }
 
 async function loadOffchainSdk() {
@@ -118,5 +151,6 @@ module.exports = {
     buildAutoAssignedEnsName,
     isValidEnsName,
     normalizeEnsName,
+    verifyCustomEnsOwnership,
     upsertAutoSubnameContenthash,
 };

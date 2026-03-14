@@ -17,6 +17,12 @@ const connectedRepos = new Map();
 /** Map<repoKey, DeployRecord[]>  */
 const deployHistory = new Map();
 
+/** Map<ensName, PendingCustomDomainChallenge> */
+const pendingCustomDomains = new Map();
+
+/** Map<ensName, VerifiedCustomDomain> */
+const verifiedCustomDomains = new Map();
+
 // ── Sessions ──────────────────────────────────────────────────────────────────
 
 function setSession(id, data) {
@@ -43,6 +49,7 @@ function deleteSession(id) {
  * @property {"auto"|"custom"} domainMode
  * @property {string|null} customEnsName
  * @property {string|null} parentEnsName
+ * @property {string|null} ipnsKey
  * @property {string} env           production | staging | preview
  * @property {string} webhookSecret
  * @property {number} webhookId
@@ -96,9 +103,42 @@ function getDeployRecords(owner, repo, branch) {
   return deployHistory.get(repoKey(owner, repo, branch)) || [];
 }
 
+// ── Custom Domain Verification ───────────────────────────────────────────────
+
+function setPendingCustomDomain(ensName, data) {
+  pendingCustomDomains.set(ensName.toLowerCase(), { ...data, createdAt: Date.now() });
+}
+
+function getPendingCustomDomain(ensName) {
+  return pendingCustomDomains.get((ensName || "").toLowerCase()) || null;
+}
+
+function deletePendingCustomDomain(ensName) {
+  pendingCustomDomains.delete((ensName || "").toLowerCase());
+}
+
+function setVerifiedCustomDomain(ensName, data) {
+  verifiedCustomDomains.set(ensName.toLowerCase(), {
+    ...data,
+    verifiedAt: Date.now(),
+  });
+}
+
+function getVerifiedCustomDomain(ensName) {
+  return verifiedCustomDomains.get((ensName || "").toLowerCase()) || null;
+}
+
+function getVerifiedCustomDomainsForUser(userSub) {
+  return [...verifiedCustomDomains.entries()]
+    .filter(([, d]) => d.verifiedBy === userSub)
+    .map(([ensName, d]) => ({ ensName, ...d }));
+}
+
 module.exports = {
   setSession, getSession, deleteSession,
   connectRepo, getConnectedRepo, getConnectedRepoByKey,
   getReposForUser, getAllConnectedRepos, disconnectRepo,
   addDeployRecord, getDeployRecords, repoKey,
+  setPendingCustomDomain, getPendingCustomDomain, deletePendingCustomDomain,
+  setVerifiedCustomDomain, getVerifiedCustomDomain, getVerifiedCustomDomainsForUser,
 };

@@ -9,6 +9,9 @@ import {
   getRepos,
   getBranches,
   connectRepo,
+  initCustomDomainVerification,
+  verifyCustomDomainSignature,
+  confirmCustomDomainEnsLink,
   getConnectedRepos,
   disconnectRepo,
   Repo,
@@ -33,6 +36,13 @@ export default function ConnectPage() {
   const [branch, setBranch] = useState("main");
   const [domainMode, setDomainMode] = useState<"auto" | "custom">("auto");
   const [customEnsName, setCustomEnsName] = useState("");
+  const [customWallet, setCustomWallet] = useState("");
+  const [customIpnsKey, setCustomIpnsKey] = useState("");
+  const [customDomainVerified, setCustomDomainVerified] = useState(false);
+  const [customEnsLinkConfirmed, setCustomEnsLinkConfirmed] = useState(false);
+  const [customEnsLinkTxHash, setCustomEnsLinkTxHash] = useState("");
+  const [verifyingCustomDomain, setVerifyingCustomDomain] = useState(false);
+  const [confirmingEnsLink, setConfirmingEnsLink] = useState(false);
   const [env, setEnv] = useState<"production" | "preview">("production");
 
   const [step, setStep] = useState<Step>("repos");
@@ -105,6 +115,14 @@ export default function ConnectPage() {
     e.preventDefault();
     if (!selectedRepo) return;
     if (domainMode === "custom" && !customEnsName.trim()) return;
+    if (domainMode === "custom" && !customDomainVerified) {
+      setConnectError("Please verify custom ENS ownership first.");
+      return;
+    }
+    if (domainMode === "custom" && !customEnsLinkConfirmed) {
+      setConnectError("Please confirm ENS -> IPNS transaction before connecting this repo.");
+      return;
+    }
 
     setConnecting(true);
     setConnectError(null);
@@ -123,6 +141,82 @@ export default function ConnectPage() {
       setConnectError((err as Error).message);
     } finally {
       setConnecting(false);
+    }
+  }
+
+  async function handleVerifyCustomDomain() {
+    if (!customEnsName.trim()) {
+      setConnectError("Enter your custom ENS domain first.");
+      return;
+    }
+
+    const eth = (window as any).ethereum;
+    if (!eth) {
+      setConnectError("No wallet detected. Install MetaMask (or compatible wallet) to verify ENS ownership.");
+      return;
+    }
+
+    try {
+      setVerifyingCustomDomain(true);
+      setConnectError(null);
+      setCustomDomainVerified(false);
+
+      const accounts = await eth.request({ method: "eth_requestAccounts" });
+      const walletAddress = accounts?.[0];
+      if (!walletAddress) throw new Error("Wallet account not available");
+
+      const init = await initCustomDomainVerification({
+        ensName: customEnsName.trim(),
+        walletAddress,
+      });
+
+      const signature = await eth.request({
+        method: "personal_sign",
+        params: [init.message, walletAddress],
+      });
+
+      await verifyCustomDomainSignature({
+        ensName: init.ensName,
+        walletAddress,
+        signature,
+      });
+
+      setCustomWallet(walletAddress);
+      setCustomIpnsKey(init.ipnsKey);
+      setCustomDomainVerified(true);
+      setCustomEnsLinkConfirmed(false);
+      setCustomEnsLinkTxHash("");
+    } catch (err: unknown) {
+      setConnectError((err as Error).message || "Custom ENS verification failed");
+      setCustomDomainVerified(false);
+    } finally {
+      setVerifyingCustomDomain(false);
+    }
+  }
+
+  async function handleConfirmEnsLink() {
+    if (!customEnsName.trim()) {
+      setConnectError("Enter your ENS domain first.");
+      return;
+    }
+    if (!customEnsLinkTxHash.trim()) {
+      setConnectError("Enter the ENS update transaction hash.");
+      return;
+    }
+
+    try {
+      setConfirmingEnsLink(true);
+      setConnectError(null);
+      await confirmCustomDomainEnsLink({
+        ensName: customEnsName.trim(),
+        txHash: customEnsLinkTxHash.trim(),
+      });
+      setCustomEnsLinkConfirmed(true);
+    } catch (err: unknown) {
+      setConnectError((err as Error).message || "Failed to confirm ENS -> IPNS transaction");
+      setCustomEnsLinkConfirmed(false);
+    } finally {
+      setConfirmingEnsLink(false);
     }
   }
 
@@ -304,17 +398,61 @@ export default function ConnectPage() {
                         type="text"
                         placeholder="myapp.eth"
                         value={customEnsName}
-                        onChange={(e) => setCustomEnsName(e.target.value)}
+                        onChange={(e) => {
+                          setCustomEnsName(e.target.value);
+                          setCustomDomainVerified(false);
+                          setCustomIpnsKey("");
+                          setCustomEnsLinkTxHash("");
+                          setCustomEnsLinkConfirmed(false);
+                        }}
                         required
                         className="w-full bg-tg-black border border-white/10 rounded-2xl px-4 py-3 text-sm text-white placeholder-tg-muted focus:outline-none focus:border-tg-lavender transition-colors font-mono"
                       />
-                      <p className="text-xs text-tg-muted">Each deploy will require a wallet transaction to update contenthash.</p>
+                      <p className="text-xs text-tg-muted">One-time setup: verify ENS ownership with a wallet signature, then set ENS contenthash to your IPNS key once.</p>
+                      <button
+                        type="button"
+                        onClick={handleVerifyCustomDomain}
+                        disabled={verifyingCustomDomain}
+                        className="w-full bg-white/5 border border-white/15 rounded-2xl px-4 py-3 text-xs font-bold tracking-widest uppercase hover:bg-white/10 transition-colors disabled:opacity-50"
+                      >
+                        {verifyingCustomDomain ? "Verifying..." : "Verify ENS Ownership"}
+                      </button>
+                      {customDomainVerified && (
+                        <>
+                          <div className="px-4 py-3 rounded-2xl bg-tg-lime/10 border border-tg-lime/30 text-xs text-tg-lime">
+                            Verified with {customWallet}. Set ENS contenthash to <span className="font-mono text-white">ipns://{customIpnsKey}</span> with your wallet, then confirm tx hash below.
+                          </div>
+                          <input
+                            type="text"
+                            placeholder="0x... ENS contenthash tx hash"
+                            value={customEnsLinkTxHash}
+                            onChange={(e) => {
+                              setCustomEnsLinkTxHash(e.target.value);
+                              setCustomEnsLinkConfirmed(false);
+                            }}
+                            className="w-full bg-tg-black border border-white/10 rounded-2xl px-4 py-3 text-sm text-white placeholder-tg-muted focus:outline-none focus:border-tg-lavender transition-colors font-mono"
+                          />
+                          <button
+                            type="button"
+                            onClick={handleConfirmEnsLink}
+                            disabled={confirmingEnsLink}
+                            className="w-full bg-white/5 border border-white/15 rounded-2xl px-4 py-3 text-xs font-bold tracking-widest uppercase hover:bg-white/10 transition-colors disabled:opacity-50"
+                          >
+                            {confirmingEnsLink ? "Confirming..." : "Confirm ENS -> IPNS Tx"}
+                          </button>
+                          {customEnsLinkConfirmed && (
+                            <div className="px-4 py-3 rounded-2xl bg-tg-lime/10 border border-tg-lime/30 text-xs text-tg-lime">
+                              ENS -> IPNS confirmed. This project can now deploy with background IPNS -> IPFS updates.
+                            </div>
+                          )}
+                        </>
+                      )}
                     </div>
                   )}
 
                   {domainMode === "auto" && (
                     <div className="px-4 py-3 rounded-2xl bg-tg-black border border-white/10 text-xs text-tg-muted">
-                      A random subdomain under <span className="font-mono text-white">d3ploy.eth</span> will be assigned and updated automatically after every deploy.
+                      A random subdomain under <span className="font-mono text-white">pushx.eth</span> will be assigned and updated automatically after every deploy.
                     </div>
                   )}
 
@@ -389,6 +527,11 @@ export default function ConnectPage() {
                       setBranch("main");
                       setDomainMode("auto");
                       setCustomEnsName("");
+                      setCustomWallet("");
+                      setCustomIpnsKey("");
+                      setCustomDomainVerified(false);
+                      setCustomEnsLinkTxHash("");
+                      setCustomEnsLinkConfirmed(false);
                     }}
                     className="border border-tg-black/20 text-tg-black px-6 py-3 rounded-full font-bold text-xs tracking-wide hover:bg-tg-black/10 transition-all"
                   >
@@ -432,6 +575,9 @@ export default function ConnectPage() {
                             <span className="text-[10px] text-tg-muted">webhook ✓</span>
                           )}
                         </div>
+                        {r.ipnsKey && (
+                          <p className="text-[10px] text-tg-muted mt-1 font-mono">ipns: {r.ipnsKey}</p>
+                        )}
                         {r.recentDeploys.length > 0 && (
                           <p className="text-xs text-tg-muted mt-2">
                             Last deploy: {new Date(r.recentDeploys[0].timestamp * 1000).toLocaleDateString()}

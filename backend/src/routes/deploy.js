@@ -27,11 +27,15 @@ router.post("/", async (req, res) => {
     env = "production",
     meta = "",
     domainMode = "custom",
+    ipnsKey = null,
   } = req.body;
 
   // Validation
   if (!repoUrl) return res.status(400).json({ error: "repoUrl is required" });
   if (!domain)  return res.status(400).json({ error: "domain is required" });
+  if (domainMode === "custom" && !ipnsKey) {
+    return res.status(400).json({ error: "ipnsKey is required for custom domains. Complete custom domain verification first." });
+  }
 
   try { new URL(repoUrl); } catch {
     return res.status(400).json({ error: "Invalid repoUrl — must be a full URL" });
@@ -71,6 +75,7 @@ router.post("/", async (req, res) => {
       ens: {
         mode: domainMode === "auto" ? "auto" : "custom",
         fullName: domain,
+        ipnsKey,
       },
     }, log);
 

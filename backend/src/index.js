@@ -13,6 +13,7 @@ const authRouter   = require("./routes/auth");
 const deployRouter = require("./routes/deploy");
 const sitesRouter  = require("./routes/sites");
 const githubRouter = require("./routes/github");
+const domainsRouter = require("./routes/domains");
 const { requireAuth } = require("./auth");
 
 const app  = express();
@@ -64,6 +65,13 @@ app.get("/", (_req, res) => {
         "DEL  /api/github/connected/:o/:r/:b":  "Disconnect repo 🔒",
         "POST /api/github/webhook":             "GitHub push webhook receiver",
       },
+      domains: {
+        "POST /api/domains/custom/init":        "Start custom ENS ownership verification 🔒",
+        "POST /api/domains/custom/verify":      "Verify signature for custom ENS ownership 🔒",
+        "POST /api/domains/custom/confirm-link": "Confirm one-time ENS->IPNS tx hash 🔒",
+        "GET  /api/domains/custom/:ensName":    "Get custom ENS verification status 🔒",
+        "GET  /api/domains/custom":             "List your verified custom ENS names 🔒",
+      },
     },
     note: "🔒 = requires Authorization: Bearer <token>",
   });
@@ -80,6 +88,9 @@ app.use("/api/deploy", requireAuth, deployRouter);
 
 // GitHub — mix of protected + webhook (webhook self-validates via HMAC)
 app.use("/api/github", githubRouter);
+
+// Custom ENS domain verification flow
+app.use("/api/domains", domainsRouter);
 
 // ── Error handler ─────────────────────────────────────────────────────────────
 // eslint-disable-next-line no-unused-vars

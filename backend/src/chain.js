@@ -39,7 +39,8 @@ async function logDeploy(domain, cid, env = "production", meta = "", log = conso
   return receipt;
 }
 
-async function updateIPNS(domain, cid, log = console.log) {
+async function updateIPNS(domain, cid, options = {}, log = console.log) {
+  const { ipnsKey: providedIpnsKey = null } = options || {};
   const signer   = getSigner();
   const nonce    = await signer.provider.getTransactionCount(signer.address, "pending");
   const contract = new ethers.Contract(process.env.IPNS_REGISTRY_CONTRACT, IPNS_ABI, signer);
@@ -47,7 +48,8 @@ async function updateIPNS(domain, cid, log = console.log) {
   const isReg    = await contract.isRegistered(domain);
 
   if (!isReg) {
-    const ipnsKey  = ethers.toUtf8Bytes(`ipns-placeholder:${domain}`);
+    const stableIpnsKey = providedIpnsKey || `ipns-placeholder:${domain}`;
+    const ipnsKey  = ethers.toUtf8Bytes(stableIpnsKey);
     const gateways = ["https://gateway.pinata.cloud", "https://dweb.link", "https://ipfs.io"];
     log(`  🔗 IPNSRegistry.register() nonce=${nonce}`);
     const tx = await contract.register(domain, ipnsKey, cidBytes, gateways, { nonce });
