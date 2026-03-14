@@ -51,7 +51,7 @@ export default function Footer() {
           <div>
             <div className="text-white/30 text-xs font-bold uppercase tracking-widest mb-5">Ecosystem</div>
             <ul className="space-y-3">
-              {['Pinata', 'web3.storage', 'Filebase', 'Gnosis Safe', 'ENS Protocol'].map((item) => (
+              {['Pinata', 'Lighthouse (fallback)', 'Namespace Offchain', 'Gnosis Safe', 'ENS Protocol'].map((item) => (
                 <li key={item}>
                   <a href="#" className="text-white/60 text-sm hover:text-white transition-colors">{item}</a>
                 </li>

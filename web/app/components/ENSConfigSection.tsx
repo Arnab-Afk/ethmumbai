@@ -18,7 +18,7 @@ export default function ENSConfigSection() {
             <div className="rounded-[36px] p-8 flex flex-col min-h-64 relative overflow-hidden" style={{ backgroundColor: '#0081BC' }}>
               <h3 className="text-white font-bold text-xl mb-3">GitHub Connect</h3>
               <p className="text-blue-100 text-base leading-relaxed">
-                Connect your repo and deploy on every push. D3PLOY handles the build, pin, and ENS update automatically.
+                Connect your repo and deploy on every push. Each project gets a stable random subdomain under pushx.eth that updates automatically.
               </p>
               <div
                 className="absolute bottom-6 right-6 w-16 h-16 border-2 border-blue-300 rounded-sm"
@@ -34,7 +34,7 @@ export default function ENSConfigSection() {
             <div className="rounded-[36px] p-8 flex flex-col min-h-64 relative overflow-hidden" style={{ backgroundColor: '#2E6B2E' }}>
               <h3 className="text-white font-bold text-xl mb-3">GitHub Actions</h3>
               <p className="text-green-100 text-base leading-relaxed">
-                Automate deploys on every push to main. IPFS pinning + ENS updates, zero config required.
+                Automate deploys on every push to main. We upload to Pinata first, then fail over to backup pinning if needed.
               </p>
               <div
                 className="absolute bottom-6 right-6 w-16 h-16 border-2 border-green-300 rounded-sm"
@@ -50,7 +50,7 @@ export default function ENSConfigSection() {
             <div className="rounded-[36px] p-8 flex flex-col min-h-64 relative overflow-hidden" style={{ backgroundColor: '#EC4899' }}>
               <h3 className="text-white font-bold text-xl mb-3">ENS Dashboard</h3>
               <p className="text-pink-100 text-base leading-relaxed">
-                Manage domains, text records, multi-sig queues, and deploy history — all in one visual interface.
+                Use custom ENS with one-time wallet setup (ENS -&gt; IPNS), then every deploy updates IPNS -&gt; IPFS automatically.
               </p>
               <div
                 className="absolute bottom-6 right-6 w-16 h-16 border-2 border-pink-300 rounded-sm"

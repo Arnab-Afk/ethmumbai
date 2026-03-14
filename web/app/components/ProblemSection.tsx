@@ -15,7 +15,7 @@ export default function ProblemSection() {
               Farewell to downtime.
             </h2>
             <p className="text-base md:text-lg leading-relaxed w-full md:w-1/2" style={{ color: '#1e5f7a' }}>
-              Your site lives on IPFS — content-addressed, unstoppable, and pinned to 3 providers simultaneously. No single entity can take it down.
+              Your site lives on IPFS — content-addressed, unstoppable, and pinned with provider failover for reliability. No single entity can take it down.
             </p>
           </div>
         </div>
@@ -37,10 +37,9 @@ export default function ProblemSection() {
               <div className="text-gray-500 text-xs mb-2"># GitHub Actions · deploy.yml · push to main</div>
               <div><span className="text-yellow-400">▶ </span><span className="text-white">Run deploy job</span></div>
               <div className="text-gray-400">Building... <span className="text-green-400">✓ dist/ (2.3MB, 847 files)</span></div>
-              <div className="text-gray-400">Uploading to Pinata... <span className="text-green-400">✓ bafybeig3...</span></div>
-              <div className="text-gray-400">Pinning to web3.storage... <span className="text-green-400">✓ bafybeig3...</span></div>
-              <div className="text-gray-400">Pinning to Filebase... <span className="text-green-400">✓ bafybeig3...</span></div>
-              <div className="text-gray-400">Updating ENS... <span className="text-green-400">✓ myapp.eth → bafybeig3... (tx: 0x3f2a...)</span></div>
+              <div className="text-gray-400">Uploading to Pinata (v3)... <span className="text-green-400">✓ bafybeig3...</span></div>
+              <div className="text-gray-400">Fallback check (Pinata v2 / Lighthouse)... <span className="text-green-400">✓ ready if needed</span></div>
+              <div className="text-gray-400">Updating ENS/IPNS... <span className="text-green-400">✓ auto subdomain or custom ENS flow</span></div>
               <div className="text-gray-400">Writing log... <span className="text-green-400">✓ latest-deploy.json</span></div>
               <div className="mt-3"><span className="text-white">🚀 Live at </span><span className="text-teal-400">https://myapp.eth.limo</span></div>
             </div>
@@ -61,7 +60,7 @@ export default function ProblemSection() {
               Config lives on-chain.
             </h2>
             <p className="text-base md:text-lg leading-relaxed w-full md:w-1/2" style={{ color: '#7a1e50' }}>
-              Store your deploy config, framework, and access policy as ENS text records. Publicly auditable, immutable history — no dashboard to hack.
+              Use auto subdomains under pushx.eth, or bring your own ENS with one-time ENS -&gt; IPNS setup and automatic IPNS -&gt; IPFS updates on every deploy.
             </p>
           </div>
         </div>
@@ -80,6 +79,8 @@ export default function ProblemSection() {
             </div>
             <div className="divide-y divide-gray-50">
               <div className="flex items-center px-6 py-3"><span className="font-mono text-sm text-gray-400 w-48">deploy.cid</span><span className="font-mono text-sm font-semibold text-teal-600">bafybeig3...</span></div>
+              <div className="flex items-center px-6 py-3"><span className="font-mono text-sm text-gray-400 w-48">ens.mode</span><span className="font-mono text-sm font-semibold text-pink-600">auto | custom</span></div>
+              <div className="flex items-center px-6 py-3"><span className="font-mono text-sm text-gray-400 w-48">ens.contenthash</span><span className="font-mono text-sm font-semibold text-indigo-600">ipfs://... or ipns://...</span></div>
               <div className="flex items-center px-6 py-3"><span className="font-mono text-sm text-gray-400 w-48">deploy.env</span><span className="font-mono text-sm font-semibold text-blue-600">production</span></div>
               <div className="flex items-center px-6 py-3"><span className="font-mono text-sm text-gray-400 w-48">deploy.framework</span><span className="font-mono text-sm font-semibold text-purple-600">next</span></div>
               <div className="flex items-center px-6 py-3"><span className="font-mono text-sm text-gray-400 w-48">access.policy</span><span className="font-mono text-sm font-semibold text-orange-600">token-gated</span></div>
@@ -130,7 +131,7 @@ export default function ProblemSection() {
               <ul className="space-y-3 text-sm">
                 <li className="flex items-start gap-3"><span className="text-green-300 font-bold mt-0.5">✓</span>ENS domain — permanently on-chain</li>
                 <li className="flex items-start gap-3"><span className="text-green-300 font-bold mt-0.5">✓</span>IPFS content is content-addressed forever</li>
-                <li className="flex items-start gap-3"><span className="text-green-300 font-bold mt-0.5">✓</span>3-provider redundancy, always live</li>
+                <li className="flex items-start gap-3"><span className="text-green-300 font-bold mt-0.5">✓</span>Pinata-first upload with fallback chain</li>
                 <li className="flex items-start gap-3"><span className="text-green-300 font-bold mt-0.5">✓</span>Immutable deploy registry on-chain</li>
               </ul>
             </div>
