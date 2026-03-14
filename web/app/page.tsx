@@ -26,7 +26,7 @@ export default function Home() {
             <path d="M16 4V28" stroke="currentColor" strokeWidth="2.5" />
             <path d="M4 10L16 16L28 10" stroke="currentColor" strokeWidth="2.5" />
           </svg>
-          <span className="text-2xl font-bold tracking-tight">D3PLOY</span>
+          <span className="text-2xl tracking-tight" style={{ fontFamily: 'var(--font-bitcount)' }}>D3PLOY</span>
         </div>
         <div className="hidden md:flex items-center space-x-8 lg:space-x-10 text-xs lg:text-sm font-semibold uppercase tracking-wider">
           <a className="hover:text-[#0081BC] transition-colors" href="#why">

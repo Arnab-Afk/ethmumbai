@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { DM_Sans, JetBrains_Mono } from "next/font/google";
+import { DM_Sans, JetBrains_Mono, Bitcount_Prop_Double_Ink } from "next/font/google";
 import "./globals.css";
 
 const dmSans = DM_Sans({
@@ -16,6 +16,13 @@ const jetbrainsMono = JetBrains_Mono({
   display: "swap",
 });
 
+const bitcountPropDoubleInk = Bitcount_Prop_Double_Ink({
+  subsets: ["latin"],
+  weight: ["400"],
+  variable: "--font-bitcount",
+  display: "swap",
+});
+
 export const metadata: Metadata = {
   title: "D3PLOY — Web3 Vercel",
   description: "A censorship-resistant deployment platform where sites live on IPFS, resolve through ENS, and cannot be governed by any single entity.",
@@ -29,7 +36,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${dmSans.variable} ${jetbrainsMono.variable} font-sans antialiased`}
+        className={`${dmSans.variable} ${jetbrainsMono.variable} ${bitcountPropDoubleInk.variable} font-sans antialiased`}
       >
         {children}
       </body>
