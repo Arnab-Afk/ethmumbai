@@ -55,6 +55,11 @@ export default function DeployPage() {
         setStatus("done");
       },
       (msg) => {
+        if (msg.includes("401") || msg.includes("Authentication")) {
+          clearToken();
+          router.replace("/login");
+          return;
+        }
         setErrMsg(msg);
         setStatus("error");
       }

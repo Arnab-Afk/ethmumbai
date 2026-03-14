@@ -38,7 +38,7 @@ export default function Navbar() {
       {/* Right side */}
       <div className="flex items-center space-x-6">
         <a
-          href="https://github.com"
+          href="https://github.com/ishikabhoyar/ethmumbai"
           target="_blank"
           rel="noopener noreferrer"
           className="text-sm font-medium text-tg-muted cursor-pointer hover:text-white transition-colors tracking-widest"
