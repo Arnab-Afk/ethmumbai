@@ -1,10 +1,10 @@
 const integrations = [
-  { name: 'Pinata', type: 'IPFS Pinning', abbr: 'P', color: '#6C5CE7' },
-  { name: 'web3.storage', type: 'Decentralized Storage', abbr: 'W', color: '#0081BC' },
-  { name: 'Filebase', type: 'S3-Compatible Storage', abbr: 'F', color: '#E07B39' },
-  { name: 'Gnosis Safe', type: 'Multi-sig Governance', abbr: 'G', color: '#12FF80' },
-  { name: 'ENS', type: 'Naming Protocol', abbr: 'E', color: '#5298FF' },
-  { name: 'GitHub Actions', type: 'CI/CD Automation', abbr: 'GH', color: '#24292e' },
+  { name: 'Pinata', type: 'IPFS Pinning', logo: 'https://github.com/PinataCloud.png?size=64' },
+  { name: 'web3.storage', type: 'Decentralized Storage', logo: 'https://github.com/web3-storage.png?size=64' },
+  { name: 'Filebase', type: 'S3-Compatible Storage', logo: 'https://github.com/filebase.png?size=64' },
+  { name: 'Gnosis Safe', type: 'Multi-sig Governance', logo: 'https://github.com/safe-global.png?size=64' },
+  { name: 'ENS', type: 'Naming Protocol', logo: 'https://github.com/ensdomains.png?size=64' },
+  { name: 'GitHub Actions', type: 'CI/CD Automation', logo: 'https://github.com/actions.png?size=64' },
 ];
 
 export default function IntegrationsSection() {
@@ -27,16 +27,14 @@ export default function IntegrationsSection() {
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          {integrations.map(({ name, type, abbr, color }) => (
+          {integrations.map(({ name, type, logo }) => (
             <div
               key={name}
-              className="flex items-center gap-4 bg-gray-50 rounded-2xl px-5 py-4 border border-gray-100"
+              className="flex items-center gap-4 bg-gray-50 px-5 py-4 border border-gray-100"
             >
-              <div
-                className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-sm shrink-0"
-                style={{ backgroundColor: color }}
-              >
-                {abbr}
+              <div className="w-12 h-12 overflow-hidden shrink-0 bg-white border border-gray-100">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={logo} alt={`${name} logo`} className="w-full h-full object-cover" />
               </div>
               <div>
                 <div className="font-bold text-sm" style={{ color: '#000' }}>{name}</div>
