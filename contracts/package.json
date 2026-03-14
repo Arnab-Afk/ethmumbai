@@ -1,0 +1,31 @@
+{
+  "name": "contracts",
+  "version": "1.0.0",
+  "description": "Every major web hosting platform — Vercel, Netlify, AWS, Cloudflare — is a centralized choke point. A single legal order, policy change, or infrastructure failure can take down a site in minutes. For DeFi protocols, this is especially dangerous: a compromised or censored frontend has been the attack vector in dozens of exploits and rug pulls.",
+  "main": "index.js",
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "deploy:local": "hardhat run scripts/deploy.js --network hardhat",
+    "deploy:sepolia": "hardhat run scripts/deploy.js --network sepolia",
+    "deploy:base-sepolia": "hardhat run scripts/deploy.js --network baseSepolia",
+    "deploy:mainnet": "hardhat run scripts/deploy.js --network mainnet",
+    "deploy:ipfs": "node scripts/deploy-ipfs.js",
+    "clean": "hardhat clean"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^6.1.2",
+    "@openzeppelin/contracts": "^5.6.1",
+    "hardhat": "^2.28.6"
+  },
+  "dependencies": {
+    "@pinata/sdk": "^2.1.0",
+    "axios": "^1.13.6",
+    "dotenv": "^17.3.1",
+    "form-data": "^4.0.5",
+    "pinata-web3": "^0.5.4"
+  }
+}

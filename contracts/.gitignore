@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+
+# Hardhat artifacts & cache
+artifacts/
+cache/
+
+# Environment variables — NEVER commit these
+.env
+.env.local
+
+# Coverage
+coverage/
+coverage.json
+
+# TypeChain
+typechain/
+typechain-types/
+
+# Misc
+.DS_Store
+*.log
+latest-deploy.json

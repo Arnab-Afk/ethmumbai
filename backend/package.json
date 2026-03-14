@@ -1,13 +1,26 @@
 {
-  "name": "backend",
+  "name": "everdeploy-backend",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "EverDeploy — build, upload, and log pipeline",
+  "main": "src/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs"
+  "type": "commonjs",
+  "dependencies": {
+    "axios": "^1.7.9",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "ethers": "^6.13.5",
+    "express": "^4.21.2",
+    "form-data": "^4.0.2",
+    "fs-extra": "^11.3.0",
+    "helmet": "^8.0.0",
+    "morgan": "^1.10.0",
+    "simple-git": "^3.27.0"
+  }
 }
