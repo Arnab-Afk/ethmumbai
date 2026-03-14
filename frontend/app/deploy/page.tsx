@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { getToken, clearToken, deployStream, DeployReceipt } from "@/lib/api";
+import { getToken, clearToken, deployStream, getConnectedRepos, ConnectedRepo, DeployReceipt } from "@/lib/api";
 import Navbar from "@/components/navbar";
 
 type DeployState = "idle" | "deploying" | "done" | "error";
@@ -13,8 +13,12 @@ export default function DeployPage() {
 
   const [repoUrl, setRepoUrl] = useState("");
   const [domain, setDomain] = useState("");
+  const [domainMode, setDomainMode] = useState<"auto" | "custom">("auto");
+  const [ipnsKey, setIpnsKey] = useState("");
   const [env, setEnv] = useState<"production" | "preview">("production");
   const [meta, setMeta] = useState("");
+  const [connectedRepos, setConnectedRepos] = useState<ConnectedRepo[]>([]);
+  const [selectedConnection, setSelectedConnection] = useState("");
 
   const [status, setStatus] = useState<DeployState>("idle");
   const [logs, setLogs] = useState<string[]>([]);
@@ -28,7 +32,12 @@ export default function DeployPage() {
   useEffect(() => {
     if (!getToken()) {
       router.replace("/login");
+      return;
     }
+
+    getConnectedRepos()
+      .then((res) => setConnectedRepos(res.repos))
+      .catch(() => setConnectedRepos([]));
   }, [router]);
 
   // Auto-scroll log
@@ -41,6 +50,10 @@ export default function DeployPage() {
   function handleDeploy(e: React.FormEvent) {
     e.preventDefault();
     if (!repoUrl.trim() || !domain.trim()) return;
+    if (domainMode === "custom" && !ipnsKey.trim()) {
+      setErrMsg("ipnsKey is required for custom domains. Complete custom domain setup first.");
+      return;
+    }
 
     setStatus("deploying");
     setLogs([]);
@@ -48,7 +61,14 @@ export default function DeployPage() {
     setErrMsg(null);
 
     abortRef.current = deployStream(
-      { repoUrl: repoUrl.trim(), domain: domain.trim(), env, meta: meta.trim() },
+      {
+        repoUrl: repoUrl.trim(),
+        domain: domain.trim(),
+        env,
+        meta: meta.trim(),
+        domainMode,
+        ipnsKey: domainMode === "custom" ? ipnsKey.trim() : null,
+      },
       (line) => setLogs((prev) => [...prev, line]),
       (r) => {
         setReceipt(r);
@@ -79,6 +99,23 @@ export default function DeployPage() {
     setErrMsg(null);
   }
 
+  function handleSelectConnection(value: string) {
+    setSelectedConnection(value);
+    if (!value) return;
+
+    const [repoFullName, branch] = value.split("::");
+    const match = connectedRepos.find((r) => r.repoFullName === repoFullName && r.branch === branch);
+    if (!match) return;
+
+    setRepoUrl(`https://github.com/${match.repoFullName}/tree/${match.branch}`);
+    setDomain(match.domain);
+    setDomainMode(match.domainMode);
+    setIpnsKey(match.ipnsKey || "");
+    if (match.env === "production" || match.env === "preview") {
+      setEnv(match.env);
+    }
+  }
+
   const isDeploying = status === "deploying";
 
   return (
@@ -104,6 +141,26 @@ export default function DeployPage() {
             <h2 className="font-display text-xl font-bold mb-6">Configuration</h2>
 
             <form onSubmit={handleDeploy} className="space-y-5">
+              {/* Connected config */}
+              <div className="space-y-2">
+                <label className="text-xs font-bold tracking-widest uppercase text-tg-muted">
+                  Connected Project <span className="text-white/30">(optional)</span>
+                </label>
+                <select
+                  value={selectedConnection}
+                  onChange={(e) => handleSelectConnection(e.target.value)}
+                  disabled={isDeploying}
+                  className="w-full bg-tg-black border border-white/10 rounded-2xl px-4 py-3 text-sm text-white focus:outline-none focus:border-tg-lavender transition-colors disabled:opacity-50 appearance-none"
+                >
+                  <option value="">Manual input</option>
+                  {connectedRepos.map((r) => (
+                    <option key={`${r.owner}/${r.repo}/${r.branch}`} value={`${r.repoFullName}::${r.branch}`}>
+                      {r.repoFullName} ({r.branch}) {"->"} {r.domain}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               {/* Repo URL */}
               <div className="space-y-2">
                 <label className="text-xs font-bold tracking-widest uppercase text-tg-muted">
@@ -135,6 +192,46 @@ export default function DeployPage() {
                   className="w-full bg-tg-black border border-white/10 rounded-2xl px-4 py-3 text-sm text-white placeholder-tg-muted focus:outline-none focus:border-tg-lavender transition-colors disabled:opacity-50 font-mono"
                 />
               </div>
+
+              {/* Domain mode */}
+              <div className="space-y-2">
+                <label className="text-xs font-bold tracking-widest uppercase text-tg-muted">
+                  Domain Mode
+                </label>
+                <div className="flex space-x-2">
+                  {(["auto", "custom"] as const).map((mode) => (
+                    <button
+                      key={mode}
+                      type="button"
+                      onClick={() => setDomainMode(mode)}
+                      disabled={isDeploying}
+                      className={`flex-1 py-3 rounded-2xl text-xs font-bold tracking-widest uppercase border transition-colors disabled:opacity-50 ${
+                        domainMode === mode
+                          ? "bg-tg-lime/10 border-tg-lime/30 text-tg-lime"
+                          : "bg-transparent border-white/10 text-tg-muted hover:border-white/20"
+                      }`}
+                    >
+                      {mode}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {domainMode === "custom" && (
+                <div className="space-y-2">
+                  <label className="text-xs font-bold tracking-widest uppercase text-tg-muted">IPNS Key</label>
+                  <input
+                    type="text"
+                    placeholder="k51..."
+                    value={ipnsKey}
+                    onChange={(e) => setIpnsKey(e.target.value)}
+                    disabled={isDeploying}
+                    required
+                    className="w-full bg-tg-black border border-white/10 rounded-2xl px-4 py-3 text-sm text-white placeholder-tg-muted focus:outline-none focus:border-tg-lavender transition-colors disabled:opacity-50 font-mono"
+                  />
+                  <p className="text-xs text-tg-muted">Custom ENS deploys require fixed IPNS key so only IPNS {"->"} IPFS changes on deploy.</p>
+                </div>
+              )}
 
               {/* Environment */}
               <div className="space-y-2">
@@ -290,6 +387,18 @@ export default function DeployPage() {
                     <div className="flex justify-between">
                       <span className="font-bold opacity-60 uppercase text-xs tracking-widest">CID</span>
                       <span className="font-mono text-xs">{receipt.cid}</span>
+                    </div>
+                  )}
+                  {receipt.ens?.name && (
+                    <div className="flex justify-between">
+                      <span className="font-bold opacity-60 uppercase text-xs tracking-widest">ENS</span>
+                      <span className="font-mono text-xs">{String(receipt.ens.name)}</span>
+                    </div>
+                  )}
+                  {receipt.ipns?.key && (
+                    <div className="flex justify-between">
+                      <span className="font-bold opacity-60 uppercase text-xs tracking-widest">IPNS</span>
+                      <span className="font-mono text-xs">{String(receipt.ipns.key)}</span>
                     </div>
                   )}
                   {receipt.txHash && (

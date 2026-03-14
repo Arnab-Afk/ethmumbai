@@ -20,6 +20,9 @@ import {
 import Navbar from "@/components/navbar";
 
 type Step = "repos" | "configure" | "success";
+type EthereumProvider = {
+  request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
+};
 
 export default function ConnectPage() {
   const router = useRouter();
@@ -150,7 +153,7 @@ export default function ConnectPage() {
       return;
     }
 
-    const eth = (window as any).ethereum;
+    const eth = (window as Window & { ethereum?: EthereumProvider }).ethereum;
     if (!eth) {
       setConnectError("No wallet detected. Install MetaMask (or compatible wallet) to verify ENS ownership.");
       return;
@@ -161,8 +164,9 @@ export default function ConnectPage() {
       setConnectError(null);
       setCustomDomainVerified(false);
 
-      const accounts = await eth.request({ method: "eth_requestAccounts" });
-      const walletAddress = accounts?.[0];
+      const accountsRaw = await eth.request({ method: "eth_requestAccounts" });
+      const accounts = Array.isArray(accountsRaw) ? accountsRaw : [];
+      const walletAddress = typeof accounts[0] === "string" ? accounts[0] : "";
       if (!walletAddress) throw new Error("Wallet account not available");
 
       const init = await initCustomDomainVerification({
@@ -170,10 +174,12 @@ export default function ConnectPage() {
         walletAddress,
       });
 
-      const signature = await eth.request({
+      const signatureRaw = await eth.request({
         method: "personal_sign",
         params: [init.message, walletAddress],
       });
+      const signature = typeof signatureRaw === "string" ? signatureRaw : "";
+      if (!signature) throw new Error("Wallet signature not available");
 
       await verifyCustomDomainSignature({
         ensName: init.ensName,
@@ -442,7 +448,7 @@ export default function ConnectPage() {
                           </button>
                           {customEnsLinkConfirmed && (
                             <div className="px-4 py-3 rounded-2xl bg-tg-lime/10 border border-tg-lime/30 text-xs text-tg-lime">
-                              ENS -> IPNS confirmed. This project can now deploy with background IPNS -> IPFS updates.
+                              ENS {"->"} IPNS confirmed. This project can now deploy with background IPNS {"->"} IPFS updates.
                             </div>
                           )}
                         </>

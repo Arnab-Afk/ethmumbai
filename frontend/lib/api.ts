@@ -120,6 +120,16 @@ export interface DeployReceipt {
   domain: string;
   cid: string;
   ipnsKey?: string;
+  ens?: {
+    mode?: "auto" | "custom";
+    name?: string;
+    contenthash?: string | null;
+    managedBy?: "server" | "wallet";
+    status?: string;
+  };
+  ipns?: {
+    key?: string | null;
+  };
   txHash?: string;
   gatewayUrl?: string;
   [key: string]: unknown;
@@ -128,7 +138,7 @@ export interface DeployReceipt {
 /** Start a deploy, streaming SSE log lines back to the caller.
  *  Returns an abort function to cancel the deploy stream. */
 export function deployStream(
-  data: { repoUrl: string; domain: string; env?: string; meta?: string; domainMode?: "auto" | "custom" },
+  data: { repoUrl: string; domain: string; env?: string; meta?: string; domainMode?: "auto" | "custom"; ipnsKey?: string | null },
   onLog: (line: string) => void,
   onDone: (receipt: DeployReceipt) => void,
   onError: (message: string) => void
