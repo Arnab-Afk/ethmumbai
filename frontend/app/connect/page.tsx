@@ -160,7 +160,7 @@ export default function ConnectPage() {
             {step === "repos" && (
               <div className="rounded-card bg-tg-gray border border-white/5 p-8">
                 <h2 className="font-display text-xl font-bold mb-2">Select a Repository</h2>
-                <p className="text-tg-muted text-sm mb-6">Choose the GitHub repo you want to connect to EverDeploy.</p>
+                <p className="text-tg-muted text-sm mb-6">Choose the GitHub repo you want to connect to D3PLOY.</p>
 
                 {/* Search */}
                 <div className="relative mb-4">

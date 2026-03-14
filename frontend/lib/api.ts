@@ -5,15 +5,15 @@ const API_BASE: string =
 
 export function getToken(): string | null {
   if (typeof window === "undefined") return null;
-  return localStorage.getItem("everdeploy_token");
+  return localStorage.getItem("d3ploy_token");
 }
 
 export function saveToken(token: string) {
-  localStorage.setItem("everdeploy_token", token);
+  localStorage.setItem("d3ploy_token", token);
 }
 
 export function clearToken() {
-  localStorage.removeItem("everdeploy_token");
+  localStorage.removeItem("d3ploy_token");
 }
 
 // ── Core fetch wrapper ────────────────────────────────────────────────────────

@@ -95,12 +95,12 @@ export default function Home() {
                 {
                   step: "01",
                   title: "Connect your repo",
-                  desc: "Authenticate with GitHub and link your repository. EverDeploy registers a webhook to listen for new pushes.",
+                  desc: "Authenticate with GitHub and link your repository. D3PLOY registers a webhook to listen for new pushes.",
                 },
                 {
                   step: "02",
                   title: "Push to deploy",
-                  desc: "On every push to your configured branch, EverDeploy builds your project and pins the output to IPFS automatically.",
+                  desc: "On every push to your configured branch, D3PLOY builds your project and pins the output to IPFS automatically.",
                 },
                 {
                   step: "03",

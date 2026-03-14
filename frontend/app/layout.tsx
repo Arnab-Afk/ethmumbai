@@ -20,9 +20,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "EverDeploy — Censorship-Resistant Hosting",
+  title: "D3PLOY - Web3 Vercel",
   description:
-    "Deploy decentralized applications directly to IPFS and ENS. Censorship-resistant hosting for the open web.",
+    "A censorship-resistant deployment platform where sites live on IPFS, resolve through ENS, and cannot be governed by any single entity.",
 };
 
 export default function RootLayout({
