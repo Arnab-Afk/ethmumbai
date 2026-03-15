@@ -134,26 +134,46 @@ async function uploadDir(dirPath, name, log = console.log) {
     }
   }
 
-  // ── 4. Local IPFS daemon (Kubo HTTP API at localhost:5001) ─────────────
-  log(`  🖥️  Falling back to local IPFS daemon (localhost:5001)...`);
-  try {
-    const { execSync } = require("child_process");
-    // Use the kubo CLI — it talks to the already-running daemon
-    const result = execSync(
-      `ipfs add -r --cid-version=1 --wrap-with-directory=false --quieter "${dirPath}"`,
-      { encoding: "utf8" }
-    ).trim();
-    // --quieter prints one CID per item; the last line is the root directory CID
-    const lines = result.split("\n").filter(Boolean);
-    const cid = lines[lines.length - 1];
-    log(`  ✅ Local IPFS daemon: ${cid}`);
-    return cid;
-  } catch (err) {
-    throw new Error(
-      "All IPFS providers failed (Pinata plan limit, Lighthouse unavailable, local daemon not running). " +
-      "Run 'ipfs daemon' locally, or delete old Pinata pins at app.pinata.cloud and retry."
-    );
+  // ── 4. Kubo HTTP API — local daemon (dev) or public node (prod) ─────────
+  const kuboUrls = [
+    process.env.IPFS_API_URL || "http://127.0.0.1:5001", // local daemon if running
+    "https://node.ipfssearch.io",                         // public write node
+  ];
+
+  for (const kuboUrl of kuboUrls) {
+    log(`  🖥️  Trying Kubo HTTP API at ${kuboUrl}...`);
+    try {
+      // Upload each file individually then wrap into a directory via the add?wrap-with-directory API
+      const uploadForm = new FormData();
+      for (const { full, relative } of files) {
+        uploadForm.append("file", fs.createReadStream(full), { filename: relative });
+      }
+
+      const kuboRes = await axios.post(
+        `${kuboUrl}/api/v0/add?cid-version=1&wrap-with-directory=false&recursive=true`,
+        uploadForm,
+        {
+          maxBodyLength: Infinity,
+          maxContentLength: Infinity,
+          headers: uploadForm.getHeaders(),
+          timeout: 60000,
+        }
+      );
+
+      // Kubo returns one JSON object per line (NDJSON); last line is the root dir
+      const lines = kuboRes.data.toString().trim().split("\n").filter(Boolean);
+      const last  = JSON.parse(lines[lines.length - 1]);
+      log(`  ✅ Kubo (${kuboUrl}): ${last.Hash}`);
+      return last.Hash;
+    } catch (err) {
+      log(`  ⚠️  Kubo at ${kuboUrl} failed (${err.response?.status ?? err.message})`);
+    }
   }
+
+  throw new Error(
+    "All IPFS providers failed (Pinata plan limit, Lighthouse unavailable, no Kubo node reachable). " +
+    "Run 'ipfs daemon' locally, or delete old Pinata pins at app.pinata.cloud and retry."
+  );
 }
 
 /**

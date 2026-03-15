@@ -58,7 +58,7 @@ function getEnsProvider() {
     if (!rpcUrl) {
         throw new Error("ENS_RPC_URL or SEPOLIA_RPC_URL is required for custom domain ownership verification");
     }
-    return new ethers.JsonRpcProvider(rpcUrl);
+    return new ethers.JsonRpcProvider(rpcUrl, undefined, { batchMaxCount: 1 });
 }
 
 async function resolveEnsOwner(name) {

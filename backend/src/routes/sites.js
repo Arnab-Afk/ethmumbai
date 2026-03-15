@@ -25,7 +25,9 @@ const IPNS_ABI = [
 ];
 
 function getProvider() {
-  return new ethers.JsonRpcProvider(process.env.SEPOLIA_RPC_URL);
+  // batchMaxCount:1 sends each RPC call as a separate request,
+  // avoiding drpc.org free-tier's hard limit of 3 requests per batch.
+  return new ethers.JsonRpcProvider(process.env.SEPOLIA_RPC_URL, undefined, { batchMaxCount: 1 });
 }
 
 function getRegistry() {
@@ -55,11 +57,10 @@ router.get("/:domain", async (req, res) => {
     const limit  = parseInt(req.query.limit)  || 10;
 
     const registry = getRegistry();
-    const [history, count, latest] = await Promise.all([
-      registry.getDeployHistory(domain, offset, limit),
-      registry.deployCount(domain),
-      registry.getLatestDeploy(domain).catch(() => null),
-    ]);
+    // Sequential calls to avoid drpc.org free-tier batch limit (max 3)
+    const count   = await registry.deployCount(domain);
+    const history = await registry.getDeployHistory(domain, offset, limit);
+    const latest  = await registry.getLatestDeploy(domain).catch(() => null);
 
     const format = (d) => ({
       cid:       ethers.toUtf8String(d.cid),

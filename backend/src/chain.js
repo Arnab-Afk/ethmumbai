@@ -17,7 +17,7 @@ const IPNS_ABI = [
 ];
 
 function getSigner() {
-  const provider = new ethers.JsonRpcProvider(process.env.SEPOLIA_RPC_URL);
+  const provider = new ethers.JsonRpcProvider(process.env.SEPOLIA_RPC_URL, undefined, { batchMaxCount: 1 });
   return new ethers.Wallet(process.env.PRIVATE_KEY, provider);
 }
 
