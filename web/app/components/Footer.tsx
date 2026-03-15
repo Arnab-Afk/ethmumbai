@@ -16,7 +16,7 @@ export default function Footer() {
 
           <div className="flex items-center gap-3">
             <a
-              href="#"
+              href="https://app.d3ploy.xyz"
               className="bg-[#EC4899] text-white px-6 py-3 rounded-xl font-bold text-sm hover:brightness-110 transition-all whitespace-nowrap"
             >
               Start Deploying

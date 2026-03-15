@@ -256,7 +256,7 @@ export default function Home() {
           </p>
           <div className="mt-12 flex items-center justify-center gap-4">
             <a
-              href="#deploy"
+              href="https://app.d3ploy.xyz"
               className="bg-[#0081BC] text-white px-8 py-4 rounded-xl font-bold text-lg hover:brightness-110 transition-all"
             >
               Start Deploying

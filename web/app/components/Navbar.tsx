@@ -30,7 +30,7 @@ export default function Navbar() {
       {/* Desktop CTA */}
       <a
         className="hidden md:inline-block bg-[#0081BC] text-white px-6 md:px-8 py-3 md:py-4 rounded-xl font-bold text-xs md:text-sm uppercase tracking-widest hover:brightness-110 transition-all"
-        href="#"
+        href="https://app.d3ploy.xyz"
       >
         Start Deploying
       </a>
@@ -60,7 +60,7 @@ export default function Navbar() {
             </a>
           ))}
           <a
-            href="#"
+            href="https://app.d3ploy.xyz"
             className="mt-2 bg-[#0081BC] text-white px-6 py-3 rounded-xl font-bold text-sm uppercase tracking-widest hover:brightness-110 transition-all text-center"
             onClick={() => setOpen(false)}
           >
