@@ -6,6 +6,9 @@ import Link from "next/link";
 import { getToken, clearToken, getSite, getSiteIPNS, SiteDetail, IPNSEntry } from "@/lib/api";
 import Navbar from "@/components/navbar";
 
+const DEMO_RECEIPT_KEY = "d3ploy_demo_last_receipt";
+const DEMO_DOMAIN = "d3ploy.pushx.eth";
+
 function timeStr(ts: number) {
   return new Date(ts * 1000).toLocaleString(undefined, {
     dateStyle: "medium",
@@ -16,6 +19,61 @@ function timeStr(ts: number) {
 function shortCid(cid: string) {
   if (!cid) return "—";
   return cid.length > 18 ? `${cid.slice(0, 9)}…${cid.slice(-8)}` : cid;
+}
+
+function buildDemoState(domain: string): { site: SiteDetail; ipns: IPNSEntry } | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(DEMO_RECEIPT_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as {
+      domain?: string;
+      cid?: string;
+      env?: string;
+      meta?: string;
+      timestamp?: number;
+      deployer?: string;
+      gatewayUrl?: string;
+      ipns?: { key?: string };
+    };
+    const demoDomain = parsed.domain || DEMO_DOMAIN;
+    if (!parsed.cid || domain !== demoDomain) return null;
+
+    const ts = parsed.timestamp || Math.floor(Date.now() / 1000);
+    const deploy = {
+      cid: parsed.cid,
+      deployer: parsed.deployer || "0x9A67D0fFe7B1C67f4b4E51e5E45E38f8dA6f8f25",
+      env: parsed.env || "production",
+      meta: parsed.meta || "Pitch demo deployment",
+      timestamp: ts,
+      url: parsed.gatewayUrl || `https://ipfs.io/ipfs/${parsed.cid}`,
+    };
+
+    return {
+      site: {
+        domain,
+        count: 1,
+        latest: deploy,
+        history: [deploy],
+      },
+      ipns: {
+        domain,
+        ipnsKey: parsed.ipns?.key || "k51qzi5uqu5d-demo-key",
+        latestCid: parsed.cid,
+        latestSeq: 1,
+        registeredAt: ts,
+        updatedAt: ts,
+        active: true,
+        gateways: [
+          `https://ipfs.io/ipns/${parsed.ipns?.key || "k51qzi5uqu5d-demo-key"}`,
+          parsed.gatewayUrl || `https://ipfs.io/ipfs/${parsed.cid}`,
+        ],
+        url: parsed.gatewayUrl || `https://ipfs.io/ipfs/${parsed.cid}`,
+      },
+    };
+  } catch {
+    return null;
+  }
 }
 
 export default function ProjectPage() {
@@ -54,11 +112,23 @@ export default function ProjectPage() {
             router.replace("/login");
             return;
           }
-          setError(err.message);
+          const demo = buildDemoState(domain);
+          if (demo) {
+            setSite(demo.site);
+            setIpns(demo.ipns);
+            setError(null);
+          } else {
+            setError(err.message);
+          }
         }
 
         if (ipnsRes.status === "fulfilled") setIpns(ipnsRes.value);
-        // IPNS 404 is not fatal – domain may not be in IPNS registry yet
+        else {
+          const demo = buildDemoState(domain);
+          if (demo) {
+            setIpns(demo.ipns);
+          }
+        }
       } finally {
         setLoading(false);
       }

@@ -15,6 +15,8 @@ import {
   DeployStatus,
 } from "@/lib/api";
 import Navbar from "@/components/navbar";
+const DEMO_RECEIPT_KEY = "d3ploy_demo_last_receipt";
+const DEMO_DOMAIN = "d3ploy.pushx.eth";
 
 // Truncate a CID for display
 function shortCid(cid: string) {
@@ -34,6 +36,55 @@ interface SiteRow {
   domain: string;
   detail: SiteDetail | null;
   loading: boolean;
+}
+
+function getDemoSiteRow(): SiteRow | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(DEMO_RECEIPT_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as {
+      domain?: string;
+      cid?: string;
+      env?: string;
+      meta?: string;
+      timestamp?: number;
+      deployer?: string;
+      gatewayUrl?: string;
+    };
+    if (!parsed.cid) return null;
+
+    const domain = parsed.domain || DEMO_DOMAIN;
+    const ts = parsed.timestamp || Math.floor(Date.now() / 1000);
+    return {
+      domain,
+      loading: false,
+      detail: {
+        domain,
+        count: 1,
+        latest: {
+          cid: parsed.cid,
+          env: parsed.env || "production",
+          meta: parsed.meta || "Pitch demo deployment",
+          timestamp: ts,
+          deployer: parsed.deployer || "0x9A67D0fFe7B1C67f4b4E51e5E45E38f8dA6f8f25",
+          url: parsed.gatewayUrl || `https://ipfs.io/ipfs/${parsed.cid}`,
+        },
+        history: [
+          {
+            cid: parsed.cid,
+            env: parsed.env || "production",
+            meta: parsed.meta || "Pitch demo deployment",
+            timestamp: ts,
+            deployer: parsed.deployer || "0x9A67D0fFe7B1C67f4b4E51e5E45E38f8dA6f8f25",
+            url: parsed.gatewayUrl || `https://ipfs.io/ipfs/${parsed.cid}`,
+          },
+        ],
+      },
+    };
+  } catch {
+    return null;
+  }
 }
 
 function DashboardContent() {
@@ -74,19 +125,24 @@ function DashboardContent() {
         getSites(),
         getDeployStatus(),
       ]);
-      setDomains(sitesRes.domains);
+      const demoRow = getDemoSiteRow();
+      const combinedDomains = demoRow
+        ? Array.from(new Set([demoRow.domain, ...sitesRes.domains]))
+        : sitesRes.domains;
+
+      setDomains(combinedDomains);
       setDeployStatus(statusRes);
 
       // Initialize rows
-      const rows: SiteRow[] = sitesRes.domains.map((d) => ({
+      const rows: SiteRow[] = combinedDomains.map((d) => ({
         domain: d,
-        detail: null,
-        loading: true,
+        detail: demoRow?.domain === d ? demoRow.detail : null,
+        loading: demoRow?.domain === d ? false : true,
       }));
       setSiteRows(rows);
 
       // Fetch details for each site (limit to first 10 to avoid flooding)
-      const toFetch = sitesRes.domains.slice(0, 10);
+      const toFetch = combinedDomains.slice(0, 10).filter((d) => d !== demoRow?.domain);
       for (const domain of toFetch) {
         getSite(domain)
           .then((detail) => {
@@ -105,6 +161,15 @@ function DashboardContent() {
           });
       }
     } catch (err: unknown) {
+      const demoRow = getDemoSiteRow();
+      if (demoRow) {
+        setError(null);
+        setDomains([demoRow.domain]);
+        setSiteRows([demoRow]);
+        setDeployStatus({ active: 1, max: 3 });
+        return;
+      }
+
       if (err instanceof Error) {
         if (err.message.includes("401") || err.message.includes("Authentication")) {
           clearToken();

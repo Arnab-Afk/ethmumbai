@@ -3,11 +3,13 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { getToken, clearToken, deployStream, getConnectedRepos, ConnectedRepo, DeployReceipt, getRepos, Repo, getBranches, connectRepo } from "@/lib/api";
+import { getToken, clearToken, getConnectedRepos, ConnectedRepo, DeployReceipt, getRepos, Repo, getBranches } from "@/lib/api";
 import Navbar from "@/components/navbar";
 
 type DeployState = "idle" | "deploying" | "done" | "error";
 const FOLDER_BY_REPO_KEY = "d3ploy_folder_by_repo";
+const DEMO_RECEIPT_KEY = "d3ploy_demo_last_receipt";
+const DEMO_DOMAIN = "d3ploy.pushx.eth";
 
 function detectFrameworkHint(folderPath: string, repoUrl: string) {
   const hintSource = `${folderPath} ${repoUrl}`.toLowerCase();
@@ -15,6 +17,77 @@ function detectFrameworkHint(folderPath: string, repoUrl: string) {
   if (hintSource.includes("vite")) return "Vite (pre-check)";
   if (hintSource.includes("react-scripts") || hintSource.includes("cra")) return "Create React App (pre-check)";
   return "Auto-detect from package.json at build time";
+}
+
+function createFakeCid() {
+  const rand = Math.random().toString(36).slice(2, 18);
+  const stamp = Date.now().toString(36);
+  return `bafybeig${rand}${stamp}`.slice(0, 46);
+}
+
+function runDemoDeploy(
+  data: { repoUrl: string; env: "production" | "preview"; meta: string },
+  onLog: (line: string) => void,
+  onDone: (receipt: DeployReceipt) => void
+): () => void {
+  const cid = createFakeCid();
+  const ipnsKey = `k51qzi5uqu5d${Math.random().toString(36).slice(2, 26)}`;
+  const steps = [
+    `Cloning ${data.repoUrl}`,
+    "Installing dependencies with cached pnpm store",
+    "Running framework build command",
+    "Uploading static artifacts to IPFS",
+    `Pinned CID: ${cid}`,
+    "Publishing updated IPNS record",
+    `Resolving ENS contenthash for ${DEMO_DOMAIN}`,
+    "Deployment finished successfully",
+  ];
+
+  const timers: number[] = [];
+  steps.forEach((line, idx) => {
+    const timer = window.setTimeout(() => onLog(line), 500 + idx * 650);
+    timers.push(timer);
+  });
+
+  const doneTimer = window.setTimeout(() => {
+    const receipt: DeployReceipt = {
+      domain: DEMO_DOMAIN,
+      cid,
+      txHash: `0x${Math.random().toString(16).slice(2)}${Math.random().toString(16).slice(2)}`.slice(0, 66),
+      gatewayUrl: `https://ipfs.io/ipfs/${cid}`,
+      ens: {
+        mode: "custom",
+        name: DEMO_DOMAIN,
+        managedBy: "server",
+        status: "updated",
+      },
+      ipns: {
+        key: ipnsKey,
+      },
+    };
+
+    try {
+      localStorage.setItem(
+        DEMO_RECEIPT_KEY,
+        JSON.stringify({
+          ...receipt,
+          env: data.env,
+          meta: data.meta,
+          timestamp: Math.floor(Date.now() / 1000),
+          deployer: "0x9A67D0fFe7B1C67f4b4E51e5E45E38f8dA6f8f25",
+        })
+      );
+    } catch {
+      // Ignore storage failures in private mode.
+    }
+
+    onDone(receipt);
+  }, 500 + steps.length * 650 + 300);
+  timers.push(doneTimer);
+
+  return () => {
+    timers.forEach((timer) => window.clearTimeout(timer));
+  };
 }
 
 export default function DeployPage() {
@@ -30,7 +103,7 @@ export default function DeployPage() {
   const [branch, setBranch] = useState("main");
   const [folderPath, setFolderPath] = useState("");
   const [autoConnect, setAutoConnect] = useState(true);
-  const [domain, setDomain] = useState("");
+  const [domain, setDomain] = useState(DEMO_DOMAIN);
   const [domainMode, setDomainMode] = useState<"auto" | "custom">("auto");
   const [ipnsKey, setIpnsKey] = useState("");
   const [env, setEnv] = useState<"production" | "preview">("production");
@@ -162,33 +235,10 @@ export default function DeployPage() {
 
   async function handleDeploy(e: React.FormEvent) {
     e.preventDefault();
-    if (!repoUrl.trim() || !domain.trim()) return;
+    if (!repoUrl.trim()) return;
     if (domainMode === "custom" && !ipnsKey.trim()) {
       setErrMsg("ipnsKey is required for custom domains. Complete custom domain setup first.");
       return;
-    }
-
-    if (selectedRepo && autoConnect) {
-      const alreadyConnected = connectedRepos.some(
-        (r) => r.repoFullName === selectedRepo && r.branch === branch
-      );
-
-      try {
-        if (!alreadyConnected) {
-          await connectRepo({
-            repoFullName: selectedRepo,
-            branch,
-            domain,
-            domainMode,
-            customEnsName: domainMode === "custom" ? domain : undefined,
-            env,
-          });
-        }
-      } catch (err: unknown) {
-        setErrMsg(`Could not auto-connect repo for webhook deploys: ${(err as Error).message}`);
-        setStatus("error");
-        return;
-      }
     }
 
     setStatus("deploying");
@@ -196,28 +246,16 @@ export default function DeployPage() {
     setReceipt(null);
     setErrMsg(null);
 
-    abortRef.current = deployStream(
+    abortRef.current = runDemoDeploy(
       {
         repoUrl: repoUrl.trim(),
-        domain: domain.trim(),
         env,
         meta: meta.trim(),
-        domainMode,
-        ipnsKey: domainMode === "custom" ? ipnsKey.trim() : null,
       },
       (line) => setLogs((prev) => [...prev, line]),
       (r) => {
         setReceipt(r);
         setStatus("done");
-      },
-      (msg) => {
-        if (msg.includes("401") || msg.includes("Authentication")) {
-          clearToken();
-          router.replace("/login");
-          return;
-        }
-        setErrMsg(msg);
-        setStatus("error");
       }
     );
   }
@@ -275,6 +313,9 @@ export default function DeployPage() {
           {/* Form Card */}
           <div className="md:col-span-5 rounded-card bg-tg-gray border border-white/5 p-8">
             <h2 className="font-display text-xl font-bold mb-6">Configuration</h2>
+            <div className="mb-5 rounded-2xl border border-tg-lime/30 bg-tg-lime/10 px-4 py-3 text-xs text-tg-lime">
+              Pitch-safe deploy mode is enabled. This simulates a full successful pipeline and always deploys to {DEMO_DOMAIN}.
+            </div>
 
             <form onSubmit={handleDeploy} className="space-y-5">
               {/* Connected config */}
@@ -420,13 +461,13 @@ export default function DeployPage() {
                 </label>
                 <input
                   type="text"
-                  placeholder="myapp.eth"
                   value={domain}
-                  onChange={(e) => setDomain(e.target.value)}
+                  readOnly
                   disabled={isDeploying}
                   required
                   className="w-full bg-tg-black border border-white/10 rounded-2xl px-4 py-3 text-sm text-white placeholder-tg-muted focus:outline-none focus:border-tg-lavender transition-colors disabled:opacity-50 font-mono"
                 />
+                <p className="text-xs text-tg-muted">Fixed for this demo run.</p>
               </div>
 
               {/* Domain mode */}
@@ -658,7 +699,7 @@ export default function DeployPage() {
                   )}
                 </div>
                 <div className="mt-4 flex space-x-3">
-                  <Link href={`/projects/${encodeURIComponent(domain)}`}>
+                  <Link href={`/projects/${encodeURIComponent(receipt.domain || DEMO_DOMAIN)}`}>
                     <button className="bg-tg-black text-white px-5 py-2 rounded-full font-bold text-xs tracking-wide hover:opacity-90 transition-all">
                       VIEW PROJECT
                     </button>
