@@ -4,7 +4,6 @@
 
 **Live App:** [https://app.d3ploy.xyz](https://app.d3ploy.xyz)
 
-**Reference implementation:** [dhai-eth-site](https://github.com/Dhaiwat10/dhai-eth-site) by Dhaiwat10 — a React + Vite site auto-deployed to IPFS via Pinata and connected to `dhai.eth`.
 
 ---
 
