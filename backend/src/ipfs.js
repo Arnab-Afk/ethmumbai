@@ -1,6 +1,6 @@
 /**
  * src/ipfs.js
- * IPFS upload helpers — Pinata v3 → Pinata v2 → Lighthouse fallback chain
+ * IPFS upload helpers — Pinata v3 → Pinata v2 → Lighthouse → local IPFS daemon fallback chain
  */
 
 const axios    = require("axios");
@@ -105,45 +105,55 @@ async function uploadDir(dirPath, name, log = console.log) {
   }
 
   // ── 3. Lighthouse ──────────────────────────────────────
-  if (!LIGHTHOUSE_API_KEY) {
-    throw new Error(
-      "All IPFS providers failed. " +
-      "Your Pinata account has hit its free plan storage limit (1 GB). " +
-      "Either delete old pins at app.pinata.cloud, upgrade your Pinata plan, " +
-      "or set LIGHTHOUSE_API_KEY in .env (get a free key at https://lighthouse.storage)."
-    );
+  if (LIGHTHOUSE_API_KEY) {
+    log(`  📡 Trying Lighthouse IPFS...`);
+    try {
+      const archiver = require("archiver");
+      const zipStream = archiver("zip", { zlib: { level: 6 } });
+      zipStream.directory(dirPath, false);
+      zipStream.finalize();
+
+      const lhForm = new FormData();
+      lhForm.append("file", zipStream, { filename: "site.zip", contentType: "application/zip" });
+
+      const lhRes = await axios.post(
+        "https://node.lighthouse.storage/api/v0/add",
+        lhForm,
+        {
+          maxBodyLength: Infinity,
+          maxContentLength: Infinity,
+          headers: {
+            Authorization: `Bearer ${LIGHTHOUSE_API_KEY}`,
+            ...lhForm.getHeaders(),
+          },
+        }
+      );
+      return lhRes.data.Hash;
+    } catch (err) {
+      log(`  ⚠️  Lighthouse failed (${err.response?.status ?? err.message}), trying local IPFS daemon...`);
+    }
   }
 
-  log(`  📡 Falling back to Lighthouse IPFS...`);
-
-  // Lighthouse requires one file per request, so we upload all files and
-  // then use the root CID returned for the last (index.html) file.
-  // For a proper directory CID, we zip the whole directory.
-  const archiver = require("archiver");
-  const { Readable } = require("stream");
-
-  // Build a zip in memory and stream to Lighthouse
-  const zipStream = archiver("zip", { zlib: { level: 6 } });
-  zipStream.directory(dirPath, false);
-  zipStream.finalize();
-
-  const form = new FormData();
-  form.append("file", zipStream, { filename: "site.zip", contentType: "application/zip" });
-
-  const lhRes = await axios.post(
-    "https://node.lighthouse.storage/api/v0/add",
-    form,
-    {
-      maxBodyLength: Infinity,
-      maxContentLength: Infinity,
-      headers: {
-        Authorization: `Bearer ${LIGHTHOUSE_API_KEY}`,
-        ...form.getHeaders(),
-      },
-    }
-  );
-
-  return lhRes.data.Hash;
+  // ── 4. Local IPFS daemon (Kubo HTTP API at localhost:5001) ─────────────
+  log(`  🖥️  Falling back to local IPFS daemon (localhost:5001)...`);
+  try {
+    const { execSync } = require("child_process");
+    // Use the kubo CLI — it talks to the already-running daemon
+    const result = execSync(
+      `ipfs add -r --cid-version=1 --wrap-with-directory=false --quieter "${dirPath}"`,
+      { encoding: "utf8" }
+    ).trim();
+    // --quieter prints one CID per item; the last line is the root directory CID
+    const lines = result.split("\n").filter(Boolean);
+    const cid = lines[lines.length - 1];
+    log(`  ✅ Local IPFS daemon: ${cid}`);
+    return cid;
+  } catch (err) {
+    throw new Error(
+      "All IPFS providers failed (Pinata plan limit, Lighthouse unavailable, local daemon not running). " +
+      "Run 'ipfs daemon' locally, or delete old Pinata pins at app.pinata.cloud and retry."
+    );
+  }
 }
 
 /**
