@@ -12,8 +12,8 @@ const { ethers } = require("ethers");
 const router = express.Router();
 
 const REGISTRY_ABI = [
-  "function getDeployHistory(string calldata domain, uint256 offset, uint256 limit) external view returns (tuple(bytes cid, address deployer, string env, string meta, uint256 timestamp)[])",
-  "function getLatestDeploy(string calldata domain) external view returns (tuple(bytes cid, address deployer, string env, string meta, uint256 timestamp))",
+  "function getDeployHistory(string calldata domain, uint256 offset, uint256 limit) external view returns (tuple(bytes cid, address deployer, uint256 timestamp, string domain, string env, string meta)[])",
+  "function getLatestDeploy(string calldata domain) external view returns (tuple(bytes cid, address deployer, uint256 timestamp, string domain, string env, string meta))",
   "function getAllDomains() external view returns (string[])",
   "function deployCount(string calldata domain) external view returns (uint256)",
 ];
