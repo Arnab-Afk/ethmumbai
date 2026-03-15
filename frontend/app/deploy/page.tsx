@@ -45,7 +45,7 @@ function runDemoDeploy(
 
   const timers: number[] = [];
   steps.forEach((line, idx) => {
-    const timer = window.setTimeout(() => onLog(line), 500 + idx * 650);
+    const timer = window.setTimeout(() => onLog(line), 500 + idx * 7400);
     timers.push(timer);
   });
 
@@ -82,7 +82,7 @@ function runDemoDeploy(
     }
 
     onDone(receipt);
-  }, 500 + steps.length * 650 + 300);
+  }, 500 + steps.length * 7400 + 300);
   timers.push(doneTimer);
 
   return () => {
