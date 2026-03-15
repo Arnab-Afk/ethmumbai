@@ -189,6 +189,8 @@ func (c *DockerCloner) CloneAndBuild(ctx context.Context, rawRepoURL, githubToke
 		"export NPM_CONFIG_CACHE=/cache/npm",
 		"export YARN_CACHE_FOLDER=/cache/yarn",
 		"export PNPM_HOME=/cache/pnpm-home",
+		"export PNPM_STORE_DIR=/cache/pnpm-store",
+		"export COREPACK_HOME=/cache/corepack",
 		"export NEXT_TELEMETRY_DISABLED=1",
 		"export CI=1",
 		"apk add --no-cache git >/dev/null",
@@ -197,7 +199,7 @@ func (c *DockerCloner) CloneAndBuild(ctx context.Context, rawRepoURL, githubToke
 		"if [ -n \"$SUBPATH\" ] && [ ! -d \"/work/repo/$SUBPATH\" ]; then echo \"subdirectory not found: $SUBPATH\"; exit 1; fi",
 		"if [ -n \"$SUBPATH\" ]; then cd \"/work/repo/$SUBPATH\"; else cd /work/repo; fi",
 		"if [ ! -f package.json ]; then echo 'package.json not found'; exit 1; fi",
-		"if [ -f pnpm-lock.yaml ]; then corepack enable; pnpm config set store-dir /cache/pnpm-store; pnpm install --frozen-lockfile --prefer-offline || pnpm install --prefer-offline; pnpm run build;",
+		"if [ -f pnpm-lock.yaml ]; then corepack enable; corepack prepare pnpm@10.10.0 --activate >/dev/null 2>&1 || true; pnpm fetch --frozen-lockfile --prefer-offline --store-dir /cache/pnpm-store || true; pnpm install --frozen-lockfile --offline --store-dir /cache/pnpm-store || pnpm install --frozen-lockfile --prefer-offline --store-dir /cache/pnpm-store; pnpm run build;",
 		"elif [ -f yarn.lock ]; then corepack enable; yarn install --immutable --inline-builds || yarn install --inline-builds; yarn build;",
 		"elif [ -f package-lock.json ]; then npm ci --prefer-offline --no-audit --progress=false || npm install --prefer-offline --no-audit --progress=false; npm run build;",
 		"else npm install --prefer-offline --no-audit --progress=false; npm run build; fi",
@@ -231,6 +233,7 @@ func (c *DockerCloner) CloneAndBuild(ctx context.Context, rawRepoURL, githubToke
 		"-v", fmt.Sprintf("%s:/cache/yarn", cacheVolumes.yarn),
 		"-v", fmt.Sprintf("%s:/cache/pnpm-store", cacheVolumes.pnpmStore),
 		"-v", fmt.Sprintf("%s:/cache/pnpm-home", cacheVolumes.pnpmHome),
+		"-v", fmt.Sprintf("%s:/cache/corepack", cacheVolumes.corepack),
 		"-w", "/work",
 		c.buildImage,
 		"sh", "-lc", script,
@@ -283,6 +286,7 @@ type cacheDirs struct {
 	yarn      string
 	pnpmStore string
 	pnpmHome  string
+	corepack  string
 }
 
 func (c *DockerCloner) cacheVolumeNames() cacheDirs {
@@ -295,6 +299,7 @@ func (c *DockerCloner) cacheVolumeNames() cacheDirs {
 		yarn:      prefix + "-yarn",
 		pnpmStore: prefix + "-pnpm-store",
 		pnpmHome:  prefix + "-pnpm-home",
+		corepack:  prefix + "-corepack",
 	}
 }
 

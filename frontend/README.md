@@ -2,6 +2,17 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
+Create local environment variables:
+
+```bash
+cp .env.example .env.local
+```
+
+Default integration values:
+
+- `NEXT_PUBLIC_API_URL=http://localhost:3015` (backend-go)
+- `NEXT_PUBLIC_AUTH_API_URL=http://localhost:3001` (OAuth/auth backend)
+
 First, run the development server:
 
 ```bash

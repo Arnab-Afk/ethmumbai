@@ -1,5 +1,8 @@
 const API_BASE: string =
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
+  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3015";
+const AUTH_BASE: string =
+  process.env.NEXT_PUBLIC_AUTH_API_URL ??
+  (API_BASE.includes(":3015") ? "http://localhost:3001" : API_BASE);
 
 // ── Token helpers ─────────────────────────────────────────────────────────────
 
@@ -46,6 +49,14 @@ async function apiFetch<T = unknown>(
   path: string,
   opts: RequestInit = {}
 ): Promise<T> {
+  return apiFetchFrom(API_BASE, path, opts);
+}
+
+async function apiFetchFrom<T = unknown>(
+  baseUrl: string,
+  path: string,
+  opts: RequestInit = {}
+): Promise<T> {
   const token = getToken();
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -53,12 +64,23 @@ async function apiFetch<T = unknown>(
   };
   if (token) headers["Authorization"] = `Bearer ${token}`;
 
-  const res = await fetch(`${API_BASE}${path}`, { ...opts, headers });
+  const res = await fetch(`${baseUrl}${path}`, { ...opts, headers });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: "Request failed" }));
-    throw new Error(err.error || "Request failed");
+    throw new Error(`HTTP ${res.status}: ${err.error || "Request failed"}`);
   }
   return res.json() as Promise<T>;
+}
+
+function isMissingEndpointError(err: unknown): boolean {
+  return err instanceof Error && err.message.includes("HTTP 404");
+}
+
+function normalizeLabel(input: string): string {
+  const trimmed = input.trim().toLowerCase();
+  if (!trimmed) return "";
+  if (!trimmed.includes(".")) return trimmed;
+  return trimmed.split(".")[0];
 }
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
@@ -79,16 +101,16 @@ export async function getMe(): Promise<{ user: User }> {
 }
 
 export async function logout() {
-  await apiFetch("/api/auth/logout", { method: "POST" }).catch(() => {});
+  await apiFetchFrom(AUTH_BASE, "/api/auth/logout", { method: "POST" }).catch(() => {});
   clearToken();
 }
 
 export function getLoginUrl(): string {
-  return `${API_BASE}/api/auth/github`;
+  return `${AUTH_BASE}/api/auth/github`;
 }
 
 export function getGoogleLoginUrl(): string {
-  return `${API_BASE}/api/auth/google`;
+  return `${AUTH_BASE}/api/auth/google`;
 }
 
 export interface AuthProvider {
@@ -100,7 +122,7 @@ export interface AuthProvider {
 }
 
 export async function getAuthProviders(): Promise<{ providers: AuthProvider[] }> {
-  return apiFetch("/api/auth/providers");
+  return apiFetchFrom(AUTH_BASE, "/api/auth/providers");
 }
 
 // ── Sites ─────────────────────────────────────────────────────────────────────
@@ -134,11 +156,25 @@ export interface IPNSEntry {
 }
 
 export async function getSites(): Promise<{ domains: string[] }> {
-  return apiFetch("/api/sites");
+  try {
+    return await apiFetch("/api/sites");
+  } catch (err: unknown) {
+    if (isMissingEndpointError(err)) {
+      return { domains: [] };
+    }
+    throw err;
+  }
 }
 
 export async function getSite(domain: string): Promise<SiteDetail> {
-  return apiFetch(`/api/sites/${encodeURIComponent(domain)}`);
+  try {
+    return await apiFetch(`/api/sites/${encodeURIComponent(domain)}`);
+  } catch (err: unknown) {
+    if (isMissingEndpointError(err)) {
+      return { domain, count: 0, latest: null, history: [] };
+    }
+    throw err;
+  }
 }
 
 export async function getSiteIPNS(domain: string): Promise<IPNSEntry> {
@@ -188,13 +224,23 @@ export function deployStream(
 
   (async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/deploy`, {
+      const label = normalizeLabel(data.domain);
+      if (!label) {
+        onError("Domain/label is required");
+        return;
+      }
+
+      const res = await fetch(`${API_BASE}/api/deploy/stream`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          repoUrl: data.repoUrl,
+          label,
+          meta: data.meta,
+        }),
         signal: controller.signal,
       });
 
@@ -228,7 +274,13 @@ export function deployStream(
           try {
             const parsed = JSON.parse(dataStr);
             if (event === "log") onLog(parsed.line);
-            else if (event === "done") onDone(parsed as DeployReceipt);
+            else if (event === "done") {
+              onDone({
+                ...(parsed as DeployReceipt),
+                domain: (parsed as DeployReceipt).domain ?? (parsed as { label?: string }).label ?? label,
+                cid: (parsed as DeployReceipt).cid ?? (parsed as { CID?: string }).CID ?? "",
+              });
+            }
             else if (event === "error") onError(parsed.message);
           } catch {
             // ignore malformed SSE data
