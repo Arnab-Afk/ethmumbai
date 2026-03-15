@@ -1,8 +1,7 @@
 const API_BASE: string =
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3015";
+  process.env.NEXT_PUBLIC_API_URL ?? "https://api.d3ploy.xyz";
 const AUTH_BASE: string =
-  process.env.NEXT_PUBLIC_AUTH_API_URL ??
-  (API_BASE.includes(":3015") ? "http://localhost:3001" : API_BASE);
+  process.env.NEXT_PUBLIC_AUTH_API_URL ?? API_BASE;
 
 // ── Token helpers ─────────────────────────────────────────────────────────────
 
