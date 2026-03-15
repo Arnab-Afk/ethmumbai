@@ -186,6 +186,8 @@ func (c *DockerCloner) CloneAndBuild(ctx context.Context, rawRepoURL, githubToke
 
 	script := strings.Join([]string{
 		"set -eu",
+		// These exports are no-ops if already set in the builder image env, but
+		// kept here for backwards-compat if the plain node:22-alpine image is used.
 		"export NPM_CONFIG_CACHE=/cache/npm",
 		"export YARN_CACHE_FOLDER=/cache/yarn",
 		"export PNPM_HOME=/cache/pnpm-home",
@@ -193,15 +195,21 @@ func (c *DockerCloner) CloneAndBuild(ctx context.Context, rawRepoURL, githubToke
 		"export COREPACK_HOME=/cache/corepack",
 		"export NEXT_TELEMETRY_DISABLED=1",
 		"export CI=1",
-		"apk add --no-cache git >/dev/null",
+		// NOTE: 'apk add git' intentionally removed — git must be pre-installed
+		// in the builder image (see Dockerfile.builder). Using node:22-alpine
+		// directly will fail here; set DOCKER_IMAGE to the pre-built builder image.
 		cloneCmd,
 		"SUBPATH=" + shQuote(strings.Trim(parsed.SubDir, "/")),
 		"if [ -n \"$SUBPATH\" ] && [ ! -d \"/work/repo/$SUBPATH\" ]; then echo \"subdirectory not found: $SUBPATH\"; exit 1; fi",
 		"if [ -n \"$SUBPATH\" ]; then cd \"/work/repo/$SUBPATH\"; else cd /work/repo; fi",
 		"if [ ! -f package.json ]; then echo 'package.json not found'; exit 1; fi",
-		"if [ -f pnpm-lock.yaml ]; then corepack enable; corepack prepare pnpm@10.10.0 --activate >/dev/null 2>&1 || true; pnpm fetch --frozen-lockfile --prefer-offline --store-dir /cache/pnpm-store || true; pnpm install --frozen-lockfile --offline --store-dir /cache/pnpm-store || pnpm install --frozen-lockfile --prefer-offline --store-dir /cache/pnpm-store; pnpm run build;",
-		"elif [ -f yarn.lock ]; then corepack enable; yarn install --immutable --inline-builds || yarn install --inline-builds; yarn build;",
-		"elif [ -f package-lock.json ]; then npm ci --prefer-offline --no-audit --progress=false || npm install --prefer-offline --no-audit --progress=false; npm run build;",
+		// pnpm: try offline first (cache hit), fall back to network fetch.
+		// corepack is pre-activated in the builder image so 'corepack enable' is fast.
+		"if [ -f pnpm-lock.yaml ]; then corepack enable 2>/dev/null || true; pnpm install --frozen-lockfile --prefer-offline --store-dir /cache/pnpm-store; pnpm run build;",
+		// yarn: --immutable enforces lockfile, cache volume provides offline pkgs.
+		"elif [ -f yarn.lock ]; then corepack enable 2>/dev/null || true; yarn install --immutable --prefer-offline 2>/dev/null || yarn install --immutable --inline-builds; yarn build;",
+		// npm: ci is faster than install; --prefer-offline hits local cache volume.
+		"elif [ -f package-lock.json ]; then npm ci --prefer-offline --no-audit --progress=false; npm run build;",
 		"else npm install --prefer-offline --no-audit --progress=false; npm run build; fi",
 		"# If build produced .next but not out, try static export for flatter IPFS-friendly output",
 		"if [ -d .next ] && [ ! -d out ]; then",
