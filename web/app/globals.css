@@ -1,8 +1,7 @@
 @import "tailwindcss";
-@import url("https://fonts.googleapis.com/css2?family=Bitcount+Prop+Double+Ink&display=swap");
 
 :root {
-  --font-bitcount: "Bitcount Prop Double Ink", sans-serif;
+  --font-bitcount: "DM Sans", sans-serif;
 }
 
 :root {
