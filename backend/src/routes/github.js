@@ -131,6 +131,7 @@ router.post("/connect", requireAuth, async (req, res) => {
       parentEnsName: mode === "auto" ? DEFAULT_PARENT : null,
       ipnsKey: mode === "custom" ? verifiedCustomDomain.ipnsKey : null,
       env,
+      githubToken: token,
       webhookSecret: secret, webhookId,
       connectedBy: req.user.login,
     });
@@ -153,6 +154,7 @@ router.post("/connect", requireAuth, async (req, res) => {
 router.get("/connected", requireAuth, (req, res) => {
   const repos = store.getReposForUser(req.user.login).map((r) => ({
     ...r,
+    githubToken:    undefined,
     webhookSecret:  undefined,
     recentDeploys:  store.getDeployRecords(r.owner, r.repo, r.branch).slice(0, 5),
   }));
@@ -235,6 +237,7 @@ router.post(
       domain: config.domain,
       env: config.env,
       meta: `commit:${commit},by:${pusher}`,
+      githubToken: config.githubToken || null,
       ens: {
         mode: config.domainMode || "custom",
         fullName: config.domain,

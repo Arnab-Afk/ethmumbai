@@ -12,12 +12,35 @@
 const express      = require("express");
 const { runPipeline } = require("../pipeline");
 const { buildAutoAssignedEnsName, DEFAULT_PARENT } = require("../ens");
+const store = require("../store");
 
 const router = express.Router();
 
 // Simple in-memory concurrency counter
 let activeJobs = 0;
 const MAX_CONCURRENT = 3;
+
+function parseGitHubRepoInfo(rawUrl) {
+  try {
+    const url = new URL(rawUrl);
+    if (url.hostname !== "github.com") return null;
+
+    const parts = url.pathname.replace(/^\/+/, "").split("/").filter(Boolean);
+    if (parts.length < 2) return null;
+
+    const owner = parts[0];
+    const repo = parts[1].replace(/\.git$/i, "");
+    let branch = null;
+
+    if (parts[2] === "tree" && parts[3]) {
+      branch = parts[3];
+    }
+
+    return { owner, repo, branch };
+  } catch {
+    return null;
+  }
+}
 
 // ── POST /api/deploy ──────────────────────────────────────────────────────────
 
@@ -51,6 +74,27 @@ router.post("/", async (req, res) => {
     return res.status(429).json({ error: "Too many concurrent deploys — try again shortly" });
   }
 
+  let githubToken = req.user?.githubToken || null;
+  const ghInfo = parseGitHubRepoInfo(repoUrl);
+
+  if (!githubToken && ghInfo) {
+    if (ghInfo.branch) {
+      const existing = store.getConnectedRepo(ghInfo.owner, ghInfo.repo, ghInfo.branch);
+      if (existing?.connectedBy === req.user?.login && existing?.githubToken) {
+        githubToken = existing.githubToken;
+      }
+    }
+
+    if (!githubToken) {
+      const fallback = store
+        .getReposForUser(req.user?.login)
+        .find((r) => r.owner === ghInfo.owner && r.repo === ghInfo.repo && r.githubToken);
+      if (fallback?.githubToken) {
+        githubToken = fallback.githubToken;
+      }
+    }
+  }
+
   activeJobs++;
 
   // ── SSE headers ────────────────────────────────────────────────────────────
@@ -78,6 +122,7 @@ router.post("/", async (req, res) => {
       domain,
       env,
       meta,
+      githubToken,
       ens: {
         mode: domainMode === "auto" ? "auto" : "custom",
         fullName: domain,

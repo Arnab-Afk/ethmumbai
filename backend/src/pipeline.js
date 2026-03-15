@@ -51,7 +51,16 @@ function parseRepoUrl(rawUrl) {
   return { cloneUrl: rawUrl, branch: null, subDir: "" };
 }
 
-async function runPipeline({ repoUrl, domain, env = "production", meta = "", ens = null }, log = console.log) {
+function isGitHubCloneUrl(cloneUrl) {
+  return /^https?:\/\/github\.com\//i.test(cloneUrl || "");
+}
+
+function gitAuthHeaderFromToken(token) {
+  const basic = Buffer.from(`x-access-token:${token}`).toString("base64");
+  return `AUTHORIZATION: basic ${basic}`;
+}
+
+async function runPipeline({ repoUrl, domain, env = "production", meta = "", ens = null, githubToken = null }, log = console.log) {
   const startTime = Date.now();
   const shouldAutoAssignDomain = !domain || domain === "auto" || domain === "AUTO";
   const resolvedDomain = shouldAutoAssignDomain
@@ -79,8 +88,22 @@ async function runPipeline({ repoUrl, domain, env = "production", meta = "", ens
   const cloneArgs = ["--depth", "1"];
   if (branch) cloneArgs.push("--branch", branch);
 
+  if (githubToken && isGitHubCloneUrl(cloneUrl)) {
+    // Use an auth header so the token is not embedded in clone URL.
+    cloneArgs.push("--config", `http.https://github.com/.extraheader=${gitAuthHeaderFromToken(githubToken)}`);
+    log("  🔐 Using GitHub token authentication for clone");
+  }
+
   const git = simpleGit();
-  await git.clone(cloneUrl, tmpDir, cloneArgs);
+  try {
+    await git.clone(cloneUrl, tmpDir, cloneArgs);
+  } catch (err) {
+    const msg = (err && err.message) || "git clone failed";
+    if (isGitHubCloneUrl(cloneUrl) && !githubToken) {
+      throw new Error(`Git clone failed. This repository may be private; log in with GitHub or connect the repo first. Original error: ${msg}`);
+    }
+    throw err;
+  }
   log("  ✅ Cloned");
 
   // If the user pointed at a subdirectory, work inside it
