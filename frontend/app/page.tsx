@@ -14,10 +14,10 @@ export default function Home() {
           {/* Hero Card */}
           <section className="md:col-span-8 rounded-card bg-tg-lavender p-8 md:p-12 flex flex-col justify-between h-100 text-tg-black transition-transform duration-200 hover:-translate-y-0.5">
             <div>
-              <h1 className="font-display text-4xl md:text-6xl font-extrabold leading-tight tracking-tighter">
+              <h1 className="font-display text-3xl md:text-5xl font-extrabold leading-tight tracking-tighter">
                 Censorship-Resistant<br />Hosting
               </h1>
-              <p className="mt-6 text-lg font-medium opacity-80 max-w-md">
+              <p className="mt-4 text-base font-medium opacity-80 max-w-md">
                 Deploy decentralized applications directly to IPFS and ENS with
                 millisecond latency. No servers. No censorship. Unstoppable.
               </p>
@@ -143,7 +143,7 @@ export default function Home() {
         {/* Footer */}
         <footer className="mt-20 pt-12 border-t border-white/5 flex flex-col md:flex-row justify-between items-center text-tg-muted text-xs font-medium">
           <div className="flex items-center space-x-4 mb-4 md:mb-0">
-            <span>© 2024 EVERDEPLOY FOUNDATION</span>
+            <span>© 2024 D3PLOY FOUNDATION</span>
             <span className="w-1 h-1 bg-white/20 rounded-full" />
             <span className="hover:text-white cursor-pointer transition-colors">TERMS OF SERVICE</span>
           </div>

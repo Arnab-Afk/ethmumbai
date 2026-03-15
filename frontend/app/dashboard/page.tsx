@@ -296,7 +296,7 @@ function DashboardContent() {
         {/* Footer */}
         <footer className="mt-20 pt-12 border-t border-white/5 flex flex-col md:flex-row justify-between items-center text-tg-muted text-xs font-medium">
           <div className="flex items-center space-x-4 mb-4 md:mb-0">
-            <span>© 2024 EVERDEPLOY FOUNDATION</span>
+            <span>© 2024 D3PLOY FOUNDATION</span>
             <span className="w-1 h-1 bg-white/20 rounded-full" />
             <span className="hover:text-white cursor-pointer transition-colors">TERMS OF SERVICE</span>
           </div>
