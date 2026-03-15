@@ -24,18 +24,25 @@ type DockerCloner struct {
 	timeout      time.Duration
 	buildTimeout time.Duration
 	buildImage   string
+	cachePrefix  string
 }
 
 func NewDockerCloner(dockerImage string, timeout time.Duration, buildTimeout time.Duration) *DockerCloner {
 	if buildTimeout <= 0 {
 		buildTimeout = 30 * time.Minute
 	}
-	return &DockerCloner{dockerImage: dockerImage, timeout: timeout, buildTimeout: buildTimeout, buildImage: "node:20-alpine"}
+	return &DockerCloner{dockerImage: dockerImage, timeout: timeout, buildTimeout: buildTimeout, buildImage: "node:22-alpine", cachePrefix: "backend-go-cache"}
 }
 
 func (c *DockerCloner) SetBuildImage(image string) {
 	if strings.TrimSpace(image) != "" {
 		c.buildImage = image
+	}
+}
+
+func (c *DockerCloner) SetCachePrefix(prefix string) {
+	if strings.TrimSpace(prefix) != "" {
+		c.cachePrefix = sanitizeVolumeName(prefix)
 	}
 }
 
@@ -166,6 +173,8 @@ func (c *DockerCloner) CloneAndBuild(ctx context.Context, rawRepoURL, githubToke
 	runCtx, cancel := context.WithTimeout(ctx, c.buildTimeout)
 	defer cancel()
 
+	cacheVolumes := c.cacheVolumeNames()
+
 	cloneCmd := "git clone --depth 1"
 	if parsed.Branch != "" {
 		cloneCmd += " --branch " + shQuote(parsed.Branch)
@@ -177,22 +186,29 @@ func (c *DockerCloner) CloneAndBuild(ctx context.Context, rawRepoURL, githubToke
 
 	script := strings.Join([]string{
 		"set -eu",
+		"export NPM_CONFIG_CACHE=/cache/npm",
+		"export YARN_CACHE_FOLDER=/cache/yarn",
+		"export PNPM_HOME=/cache/pnpm-home",
+		"export NEXT_TELEMETRY_DISABLED=1",
+		"export CI=1",
 		"apk add --no-cache git >/dev/null",
 		cloneCmd,
 		"SUBPATH=" + shQuote(strings.Trim(parsed.SubDir, "/")),
 		"if [ -n \"$SUBPATH\" ] && [ ! -d \"/work/repo/$SUBPATH\" ]; then echo \"subdirectory not found: $SUBPATH\"; exit 1; fi",
 		"if [ -n \"$SUBPATH\" ]; then cd \"/work/repo/$SUBPATH\"; else cd /work/repo; fi",
 		"if [ ! -f package.json ]; then echo 'package.json not found'; exit 1; fi",
-		"if [ -f pnpm-lock.yaml ]; then corepack enable; pnpm install --frozen-lockfile || pnpm install; pnpm run build;",
-		"elif [ -f yarn.lock ]; then corepack enable; yarn install --frozen-lockfile || yarn install; yarn build;",
-		"elif [ -f package-lock.json ]; then npm ci || npm install; npm run build;",
-		"else npm install; npm run build; fi",
+		"if [ -f pnpm-lock.yaml ]; then corepack enable; pnpm config set store-dir /cache/pnpm-store; pnpm install --frozen-lockfile --prefer-offline || pnpm install --prefer-offline; pnpm run build;",
+		"elif [ -f yarn.lock ]; then corepack enable; yarn install --immutable --inline-builds || yarn install --inline-builds; yarn build;",
+		"elif [ -f package-lock.json ]; then npm ci --prefer-offline --no-audit --progress=false || npm install --prefer-offline --no-audit --progress=false; npm run build;",
+		"else npm install --prefer-offline --no-audit --progress=false; npm run build; fi",
 		"# If build produced .next but not out, try static export for flatter IPFS-friendly output",
 		"if [ -d .next ] && [ ! -d out ]; then",
 		"  if node -e \"const p=require('./package.json');process.exit(p.scripts&&p.scripts.export?0:1)\"; then",
 		"    if [ -f pnpm-lock.yaml ]; then pnpm run export || true;",
 		"    elif [ -f yarn.lock ]; then yarn export || true;",
 		"    else npm run export || true; fi",
+		"  else",
+		"    npx --yes next export || true",
 		"  fi",
 		"fi",
 		"if [ -d out ]; then OUTDIR=out;",
@@ -211,6 +227,10 @@ func (c *DockerCloner) CloneAndBuild(ctx context.Context, rawRepoURL, githubToke
 		"--cap-drop", "ALL",
 		"--security-opt", "no-new-privileges",
 		"-v", fmt.Sprintf("%s:/work", filepath.Clean(tmpDir)),
+		"-v", fmt.Sprintf("%s:/cache/npm", cacheVolumes.npm),
+		"-v", fmt.Sprintf("%s:/cache/yarn", cacheVolumes.yarn),
+		"-v", fmt.Sprintf("%s:/cache/pnpm-store", cacheVolumes.pnpmStore),
+		"-v", fmt.Sprintf("%s:/cache/pnpm-home", cacheVolumes.pnpmHome),
 		"-w", "/work",
 		c.buildImage,
 		"sh", "-lc", script,
@@ -258,11 +278,47 @@ func (c *DockerCloner) CloneAndBuild(ctx context.Context, rawRepoURL, githubToke
 	}, buildPath, cleanup, nil
 }
 
+type cacheDirs struct {
+	npm       string
+	yarn      string
+	pnpmStore string
+	pnpmHome  string
+}
+
+func (c *DockerCloner) cacheVolumeNames() cacheDirs {
+	prefix := sanitizeVolumeName(c.cachePrefix)
+	if prefix == "" {
+		prefix = "backend-go-cache"
+	}
+	return cacheDirs{
+		npm:       prefix + "-npm",
+		yarn:      prefix + "-yarn",
+		pnpmStore: prefix + "-pnpm-store",
+		pnpmHome:  prefix + "-pnpm-home",
+	}
+}
+
 func shQuote(s string) string {
 	if s == "" {
 		return "''"
 	}
 	return "'" + strings.ReplaceAll(s, "'", "'\"'\"'") + "'"
+}
+
+func sanitizeVolumeName(raw string) string {
+	raw = strings.ToLower(strings.TrimSpace(raw))
+	if raw == "" {
+		return ""
+	}
+	b := strings.Builder{}
+	for _, r := range raw {
+		if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r == '-' || r == '_' || r == '.' {
+			b.WriteRune(r)
+			continue
+		}
+		b.WriteRune('-')
+	}
+	return strings.Trim(b.String(), "-._")
 }
 
 func (c *DockerCloner) Build(ctx context.Context, repoPath string) (string, error) {
