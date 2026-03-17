@@ -74,11 +74,7 @@ export default function Footer() {
         {/* Bottom bar */}
         <div className="pt-10 flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-white/25 text-xs">
-            © 2026 D3PLOY. Built on top of{' '}
-            <a href="#" className="text-white/40 hover:text-white/70 transition-colors underline underline-offset-2">
-              dhai-eth-site
-            </a>{' '}
-            by Dhaiwat10.
+            © 2026 D3PLOY. 
           </p>
           <div className="flex items-center gap-6">
             <a href="#" className="text-white/25 text-xs hover:text-white/50 transition-colors">Privacy</a>
