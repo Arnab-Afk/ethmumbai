@@ -1,6 +1,6 @@
 export default function HowItWorks() {
   return (
-    <section id="how-it-works" className="py-16 px-4 md:px-8" style={{ backgroundColor: '#F4F4F4' }}>
+    <section id="how-it-works" className="py-14 md:py-20 px-4 md:px-8" style={{ backgroundColor: '#F4F4F4' }}>
       <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
 
         {/* Decorative bars — hidden on mobile */}
@@ -40,19 +40,34 @@ export default function HowItWorks() {
           <div className="absolute right-0 top-[5.5rem] w-10 h-20" style={{ backgroundColor: '#F9A8D4' }}></div>
         </div>
 
-        {/* Stat lines */}
-        <div>
-          <div className="flex items-baseline gap-4 md:gap-8 leading-none mb-2">
-            <span className="font-bold tracking-tighter" style={{ fontSize: 'clamp(36px, 6vw, 72px)', color: '#EC4899' }}>3</span>
-            <span className="font-bold tracking-tighter" style={{ fontSize: 'clamp(36px, 6vw, 72px)', color: '#000' }}>pinning providers</span>
+        <div className="mb-8 md:mb-12 max-w-2xl">
+          <p className="text-xs font-bold uppercase tracking-[0.22em] text-gray-500 mb-3">How it works</p>
+          <h2 className="text-3xl md:text-5xl font-bold leading-[1.02] tracking-[-0.03em] text-black mb-4">
+            The stack stays simple even when the infrastructure does not.
+          </h2>
+          <p className="text-base md:text-lg text-gray-600 leading-relaxed max-w-xl">
+            D3PLOY keeps deployment readable: redundant pinning, a censorship-resistant routing layer, and one place to manage updates.
+          </p>
+        </div>
+
+        {/* Stat cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5">
+          <div className="rounded-[28px] border border-black/8 bg-white px-6 md:px-8 py-6 md:py-8 shadow-[0_1px_0_rgba(0,0,0,0.03)]">
+            <div className="text-xs font-bold uppercase tracking-[0.22em] text-gray-400 mb-8">Reliability</div>
+            <div className="font-bold tracking-[-0.05em] text-[#EC4899] mb-2" style={{ fontSize: 'clamp(46px, 8vw, 88px)' }}>3</div>
+            <div className="text-2xl md:text-[32px] font-bold tracking-[-0.04em] leading-tight text-black">pinning providers</div>
           </div>
-          <div className="flex items-baseline gap-4 md:gap-8 leading-none mb-2">
-            <span className="font-bold tracking-tighter" style={{ fontSize: 'clamp(36px, 6vw, 72px)', color: '#EC4899' }}>100%</span>
-            <span className="font-bold tracking-tighter" style={{ fontSize: 'clamp(36px, 6vw, 72px)', color: '#000' }}>censorship-resistant</span>
+
+          <div className="rounded-[28px] border border-black/8 bg-white px-6 md:px-8 py-6 md:py-8 shadow-[0_1px_0_rgba(0,0,0,0.03)]">
+            <div className="text-xs font-bold uppercase tracking-[0.22em] text-gray-400 mb-8">Availability</div>
+            <div className="font-bold tracking-[-0.05em] text-[#EC4899] mb-2" style={{ fontSize: 'clamp(46px, 8vw, 88px)' }}>100%</div>
+            <div className="text-2xl md:text-[32px] font-bold tracking-[-0.04em] leading-tight text-black">censorship-resistant</div>
           </div>
-          <div className="flex items-baseline gap-4 md:gap-8 leading-none">
-            <span className="font-bold tracking-tighter" style={{ fontSize: 'clamp(36px, 6vw, 72px)', color: '#EC4899' }}>1</span>
-            <span className="font-bold tracking-tighter" style={{ fontSize: 'clamp(36px, 6vw, 72px)', color: '#000' }}>dashboard to manage</span>
+
+          <div className="rounded-[28px] border border-black/8 bg-white px-6 md:px-8 py-6 md:py-8 shadow-[0_1px_0_rgba(0,0,0,0.03)]">
+            <div className="text-xs font-bold uppercase tracking-[0.22em] text-gray-400 mb-8">Control</div>
+            <div className="font-bold tracking-[-0.05em] text-[#EC4899] mb-2" style={{ fontSize: 'clamp(46px, 8vw, 88px)' }}>1</div>
+            <div className="text-2xl md:text-[32px] font-bold tracking-[-0.04em] leading-tight text-black">dashboard to manage</div>
           </div>
         </div>
 
